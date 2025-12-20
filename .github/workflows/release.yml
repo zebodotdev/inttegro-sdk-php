@@ -22,7 +22,7 @@ jobs:
         run: zip -r commerce-php-sdk.zip src composer.json README.md LICENSE
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: commerce-php-sdk
           path: sdks/php/commerce-php-sdk.zip
