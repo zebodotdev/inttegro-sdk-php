@@ -11,6 +11,7 @@ use Commerce\Resources\PaymentMethods;
 use Commerce\Resources\Payouts;
 use Commerce\Resources\Platform;
 use Commerce\Resources\Spec;
+use Commerce\Resources\Balances;
 
 class Client
 {
@@ -23,6 +24,7 @@ class Client
     public Otp $otp;
     public Platform $platform;
     public Spec $spec;
+    public Balances $balances;
 
     private HttpClient $http;
 
@@ -43,5 +45,6 @@ class Client
         $this->otp = new Otp($this->http);
         $this->platform = new Platform($this->http);
         $this->spec = new Spec($this->http);
+        $this->balances = new Balances($this->http);
     }
 }

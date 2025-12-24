@@ -67,19 +67,37 @@ class HttpClient
             return new ResponseObject(is_array($data) ? $data : []);
         }
 
-        $message = $this->extractErrorMessage($data, $status);
-        $code = is_array($data) ? ($data['code'] ?? ($data['error']['code'] ?? null)) : null;
+        $payload = $this->extractErrorPayload($data);
+        $message = $payload['message'] ?? $payload['detail'] ?? $this->extractErrorMessage($data, $status);
+        $code = $payload['code'] ?? null;
+        $type = $payload['type'] ?? null;
+        $url = $payload['url'] ?? null;
+        $detail = $payload['detail'] ?? null;
+        $fixCode = $payload['fix_code'] ?? null;
+        $cause = $payload['cause'] ?? null;
 
         if ($status === 401) {
-            throw new AuthenticationError($message, $status, $code, $rawBody, $data);
+            throw new AuthenticationError($message, $status, $code, $type, $url, $detail, $fixCode, $cause, $rawBody, $data);
         }
 
         if ($status === 429) {
             $retryAfter = isset($response['headers']['retry-after']) ? (int)$response['headers']['retry-after'] : null;
-            throw new RateLimitError($message, $status, $code, $rawBody, $data, $retryAfter);
+            throw new RateLimitError(
+                $message,
+                $status,
+                $code,
+                $type,
+                $url,
+                $detail,
+                $fixCode,
+                $cause,
+                $rawBody,
+                $data,
+                $retryAfter
+            );
         }
 
-        throw new APIError($message, $status, $code, $rawBody, $data);
+        throw new APIError($message, $status, $code, $type, $url, $detail, $fixCode, $cause, $rawBody, $data);
     }
 
     private function send(string $method, string $url, array $headers, ?string $payload): array
@@ -157,5 +175,16 @@ class HttpClient
             return $data['error']['message'] ?? $data['message'] ?? $data['error'] ?? ("HTTP $status");
         }
         return "HTTP $status";
+    }
+
+    private function extractErrorPayload($data): array
+    {
+        if (!is_array($data)) {
+            return [];
+        }
+        if (isset($data['error']) && is_array($data['error'])) {
+            return $data['error'];
+        }
+        return $data;
     }
 }

@@ -185,6 +185,7 @@ $session = $client->platform->newSession(['app_id' => $app['app']['id']]);
 - `$client->financialAccounts->create|lookup|connect|archive|page|verify`
 - `$client->chimes->send|lookup|schedule`
 - `$client->otp->initiate|verify|lookup|cancel`
+- `$client->balances->get`
 - `$client->platform->createApp|generateKey|newSession`
 - `$client->spec->countries`
 

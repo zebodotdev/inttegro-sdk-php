@@ -67,6 +67,7 @@ $client->platform->generateKey(['app_id' => 'app_1']);
 $client->platform->newSession(['app_id' => 'app_1']);
 
 $client->spec->countries();
+$client->balances->get();
 
 $paths = array_map(fn($req) => parse_url($req['url'], PHP_URL_PATH), $requests);
 $expected = [
@@ -111,6 +112,7 @@ $expected = [
     '/keys/generate',
     '/sessions/new',
     '/spec/countries',
+    '/balances',
 ];
 
 assertEquals($expected, $paths);
@@ -118,7 +120,15 @@ assertEquals($expected, $paths);
 $errorAdapter = function () {
     return [
         'status' => 401,
-        'body' => json_encode(['error' => ['message' => 'invalid key']]),
+        'body' => json_encode([
+            'type' => 'authentication_error',
+            'code' => 'invalid_api_key',
+            'url' => 'https://commerce.zebo.dev/e/invalid_api_key',
+            'message' => 'invalid key',
+            'detail' => 'API key is missing or invalid.',
+            'fix_code' => 'check_api_key',
+            'cause' => 'authentication_failure',
+        ]),
         'headers' => ['content-type' => 'application/json'],
     ];
 };
