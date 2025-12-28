@@ -155,7 +155,7 @@ class Payouts
      *   - page_number: int - 1-based page index (1-10, default: 1)
      *   - page_size: int - Results per page (1-256, default varies)
      *
-     * @return \Commerce\ResponseObject Paginated payout list with page metadata
+     * @return \Commerce\ResponseObject Paginated payout list with page details
      *
      * @example Get recent payouts
      * ```php

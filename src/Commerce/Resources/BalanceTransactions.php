@@ -33,7 +33,7 @@ class BalanceTransactions
      *   - page_number: int - 0-based page index (0-10, default: 0)
      *   - page_size: int - Results per page (1-256, default varies)
      *
-     * @return \Commerce\ResponseObject Paginated transaction list with page metadata
+     * @return \Commerce\ResponseObject Paginated transaction list with page details
      *
      * @example Get recent balance transactions
      * ```php

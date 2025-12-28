@@ -38,7 +38,7 @@ class Orders
      *   - payment_method_data: array - Inline payment method details
      *   - execute_payment: bool - Whether to immediately charge (default: false)
      *   - checkout_settings: array - Checkout flow configuration with redirect_url and cancel_url
-     *   - custom_data: array - Key-value metadata (max 25KB, keys and values must be strings)
+     *   - custom_data: array - Key-value custom data (max 25KB, keys and values must be strings)
      *   - idempotency_key: string - Unique key to prevent duplicate order creation
      *   - number: string - Optional order number for reference
      *   - statement_descriptor: string - Text on customer's bank statement (max 22 characters)
@@ -375,7 +375,7 @@ class Orders
      *   - created_after: string - Filter orders created after this timestamp (ISO 8601)
      *   - created_before: string - Filter orders created before this timestamp (ISO 8601)
      *
-     * @return \Commerce\ResponseObject Paginated list of orders with pagination metadata
+     * @return \Commerce\ResponseObject Paginated list of orders with pagination details
      *
      * @example Get first page of orders
      * ```php

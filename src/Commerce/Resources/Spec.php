@@ -7,7 +7,7 @@ use Commerce\HttpClient;
 /**
  * Spec resource for retrieving Commerce platform specifications.
  *
- * Specifications provide metadata about supported countries, currencies, payment methods,
+ * Specifications provide details about supported countries, currencies, payment methods,
  * and other platform capabilities. Use specs to build dynamic forms, validate inputs,
  * and adapt your integration to different markets.
  *
