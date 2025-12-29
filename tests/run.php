@@ -20,14 +20,14 @@ $client = new Client('test-key', 'https://api.zebo.dev', 5, $adapter);
 
 $client->orders->create(['number' => 'ORDER-1']);
 $client->orders->new(['number' => 'ORDER-2']);
-$client->orders->lookup('ord_1');
-$client->orders->pay(['order_id' => 'ord_1']);
-$client->orders->confirmPayment(['order_id' => 'ord_1', 'token' => '123456']);
-$client->orders->requestConfirmation('ord_1');
-$client->orders->finalize('ord_1');
-$client->orders->complete(['order_id' => 'ord_1']);
-$client->orders->cancel('ord_1');
-$client->orders->refund('ord_1');
+$client->orders->lookup('or_1');
+$client->orders->pay(['order_id' => 'or_1']);
+$client->orders->confirmPayment(['order_id' => 'or_1', 'token' => '123456']);
+$client->orders->requestConfirmation('or_1');
+$client->orders->finalize('or_1');
+$client->orders->complete(['order_id' => 'or_1']);
+$client->orders->cancel('or_1');
+$client->orders->refund('or_1');
 $client->orders->page([]);
 
 $client->paymentMethods->tokenize(['type' => 'mobile_money']);
@@ -137,7 +137,7 @@ $errorClient = new Client('bad-key', 'https://api.zebo.dev', 5, $errorAdapter);
 
 $caught = false;
 try {
-    $errorClient->orders->lookup('ord_123');
+    $errorClient->orders->lookup('or_123');
 } catch (AuthenticationError $e) {
     $caught = true;
     assertEquals(401, $e->status);
@@ -145,8 +145,8 @@ try {
 
 assertTrue($caught, 'AuthenticationError was not raised');
 
-$wrapper = $client->orders->create(['order' => ['id' => 'ord_123']]);
-assertEquals('ord_123', $wrapper->order->id);
-assertEquals('ord_123', $wrapper['order']->id);
+$wrapper = $client->orders->create(['order' => ['id' => 'or_123']]);
+assertEquals('or_123', $wrapper->order->id);
+assertEquals('or_123', $wrapper['order']->id);
 
 echo "All tests passed\n";

@@ -39,7 +39,7 @@ class PaymentMethods
      * @example Tokenize mobile money wallet
      * ```php
      * $result = $client->paymentMethods->tokenize([
-     *     'customer_id' => 'cus_abc123',
+     *     'customer_id' => 'cu_abc123',
      *     'payment_method_data' => [
      *         'type' => 'mobile_money',
      *         'mobile_money' => [

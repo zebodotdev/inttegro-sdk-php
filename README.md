@@ -105,7 +105,7 @@ use Commerce\RateLimitError;
 use Commerce\APIError;
 
 try {
-    $client->orders->lookup('ord_missing');
+    $client->orders->lookup('or_missing');
 } catch (AuthenticationError $e) {
     error_log('Check API key: ' . $e->getMessage());
 } catch (RateLimitError $e) {
@@ -126,7 +126,7 @@ $pm = $client->paymentMethods->tokenize([
 $client->paymentMethods->verify($pm['payment_method']['id']);
 
 $payment = $client->orders->pay([
-    'order_id' => 'ord_123',
+    'order_id' => 'or_123',
     'payment_method_id' => $pm['payment_method']['id'],
 ]);
 
