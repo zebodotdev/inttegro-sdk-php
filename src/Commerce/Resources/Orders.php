@@ -38,6 +38,7 @@ class Orders
      *   - payment_method_data: array - Inline payment method details
      *   - execute_payment: bool - Whether to immediately charge (default: false)
      *   - checkout_settings: array - Checkout flow configuration with redirect_url and cancel_url
+     *   - payout_settings: array - Order-specific payout destination configuration
      *   - custom_data: array - Key-value custom data (max 25KB, keys and values must be strings)
      *   - idempotency_key: string - Unique key to prevent duplicate order creation
      *   - number: string - Optional order number for reference

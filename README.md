@@ -28,6 +28,12 @@ $order = $client->orders->create([
         'name' => 'Akua Mensah',
         'phone_number' => '+233544998605',
     ],
+    'payout_settings' => [
+        'destination' => [
+            'financial_account_id' => 'fa_1234567890abcdef',
+        ],
+        'enable_fx' => false,
+    ],
     'payment_method_data' => [
         'type' => 'mobile_money',
         'mobile_money' => [
@@ -58,6 +64,12 @@ Responses are wrapped so you can use either property or array access (`$order->o
 $order = $client->orders->create([
     'idempotency_key' => 'order_checkout_abc123_' . time(),
     'customer_data' => ['name' => 'Customer', 'phone_number' => '+233200000000'],
+    'payout_settings' => [
+        'destination' => [
+            'financial_account_id' => 'fa_1234567890abcdef',
+        ],
+        'enable_fx' => false,
+    ],
     'payment_method_data' => [
         'type' => 'mobile_money',
         'mobile_money' => ['issuer' => 'mtn', 'number' => '0544998605'],
