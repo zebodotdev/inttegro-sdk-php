@@ -153,11 +153,14 @@ if (!empty($payment['requires_confirmation'])) {
 $txn = $client->otp->initiate([
     'recipient' => '+233241234567',
     'idempotency_key' => 'otp_login_' . time(),
+    'sender' => 'Acme',
+    'service_name' => 'Acme Bank',
     'purpose' => 'login',
 ]);
 
 $verification = $client->otp->verify([
     'transaction_id' => $txn['transaction_id'] ?? $txn['transaction']['id'] ?? null,
+    'recipient' => '+233241234567',
     'token' => '123456',
 ]);
 

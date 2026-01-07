@@ -29,11 +29,13 @@ class Otp
      * is typically 6 digits and expires after a configured time period. Use OTPs for
      * payment confirmations, sensitive account changes, or multi-factor authentication.
      *
-     * @param array $payload OTP initialization parameters
-     *   - recipient: string - Phone number (E.164) or email address to receive OTP (required)
-     *   - transport: string - Delivery method: 'sms' or 'email' (optional, auto-detected)
+     * @param array $payload OTP initiation parameters
+     *   - idempotency_key: string - Unique key to prevent duplicate sends (required)
+     *   - recipient: string - Phone number in international format (required)
+     *   - sender: string - Sender identifier (required)
+     *   - service_name: string - Service name in message (required)
      *   - purpose: string - Description of why OTP is needed (optional)
-     *   - Additional session configuration parameters
+     *   - Additional transaction configuration parameters
      *
      * @return \Commerce\ResponseObject Created OTP session
      *
@@ -41,20 +43,22 @@ class Otp
      * ```php
      * $result = $client->otp->initiate([
      *     'recipient' => '+233541234567',
-     *     'transport' => 'sms',
+     *     'sender' => 'Acme',
+     *     'service_name' => 'Acme Bank',
+     *     'idempotency_key' => 'otp_login_1700000000',
      *     'purpose' => 'payment_confirmation'
      * ]);
      *
-     * $session = $result->data['session'];
-     * echo "OTP sent. Session ID: {$session['id']}\n";
-     * echo "Expires at: {$session['expires_at']}\n";
+     * $txn = $result->data['transaction'];
+     * echo "OTP sent. Transaction ID: {$txn['id']}\n";
+     * echo "Expires at: {$txn['expires_at']}\n";
      * ```
      *
      * @see https://commerce.zebo.dev/otp for OTP implementation guide
      */
     public function initiate(array $payload): \Commerce\ResponseObject
     {
-        return $this->http->post('/otp/initialize', $payload);
+        return $this->http->post('/otp/initiate', $payload);
     }
 
     /**
@@ -65,23 +69,25 @@ class Otp
      * are tracked, and excessive failures may lock the session.
      *
      * @param array $payload Verification parameters
-     *   - session_id: string - Active OTP session identifier (required)
-     *   - code: string - Customer-provided OTP code (required, typically 6 digits)
+     *   - transaction_id: string - OTP transaction identifier (required)
+     *   - recipient: string - Recipient phone number (required)
+     *   - token: string - Customer-provided OTP code (required, typically 6 digits)
      *
      * @return \Commerce\ResponseObject Verification result
      *
      * @example Verify OTP code
      * ```php
      * $result = $client->otp->verify([
-     *     'session_id' => 'otp_sess_abc123',
-     *     'code' => '123456'
+     *     'transaction_id' => 'ot_abc123',
+     *     'recipient' => '+233541234567',
+     *     'token' => '123456'
      * ]);
      *
-     * $session = $result->data['session'];
-     * if ($session['status'] === 'verified') {
+     * $txn = $result->data['transaction'];
+     * if ($txn['status'] === 'verified') {
      *     echo "OTP verified successfully!\n";
      * } else {
-     *     echo "Invalid code. Attempts remaining: {$session['attempts_remaining']}\n";
+     *     echo "Invalid code. Status: {$txn['status']}\n";
      * }
      * ```
      *
@@ -100,20 +106,19 @@ class Otp
      * to customers.
      *
      * @param array $payload Lookup parameters
-     *   - session_id: string - OTP session identifier to retrieve (required)
+     *   - transaction_id: string - OTP transaction identifier to retrieve (required)
      *
      * @return \Commerce\ResponseObject OTP session details
      *
      * @example Lookup OTP session
      * ```php
      * $result = $client->otp->lookup([
-     *     'session_id' => 'otp_sess_abc123'
+     *     'transaction_id' => 'ot_abc123'
      * ]);
      *
-     * $session = $result->data['session'];
-     * echo "Status: {$session['status']}\n";
-     * echo "Attempts: {$session['verification_attempts']}\n";
-     * echo "Expires: {$session['expires_at']}\n";
+     * $txn = $result->data['transaction'];
+     * echo "Status: {$txn['status']}\n";
+     * echo "Expires: {$txn['expires_at']}\n";
      * ```
      *
      * @see https://commerce.zebo.dev/otp for OTP overview
@@ -131,14 +136,16 @@ class Otp
      * sessions cannot be resumed or verified.
      *
      * @param array $payload Cancellation parameters
-     *   - session_id: string - OTP session to cancel (required)
+     *   - transaction_id: string - OTP transaction to cancel (required)
+     *   - reason: string - Reason for cancellation (required)
      *
      * @return \Commerce\ResponseObject Cancelled session
      *
      * @example Cancel OTP session
      * ```php
      * $result = $client->otp->cancel([
-     *     'session_id' => 'otp_sess_abc123'
+     *     'transaction_id' => 'ot_abc123',
+     *     'reason' => 'user_requested_new_code'
      * ]);
      *
      * echo "OTP session cancelled\n";

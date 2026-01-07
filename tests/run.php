@@ -57,8 +57,14 @@ $client->chimes->send(['message' => 'hi']);
 $client->chimes->lookup('ch_1');
 $client->chimes->schedule(['message' => 'later']);
 
-$client->otp->initiate(['recipient' => '+233', 'purpose' => 'login']);
-$client->otp->verify(['transaction_id' => 'txn_1', 'token' => '123456']);
+$client->otp->initiate([
+    'recipient' => '+233',
+    'sender' => 'Acme',
+    'service_name' => 'Acme Bank',
+    'idempotency_key' => 'otp_login_1700000000',
+    'purpose' => 'login',
+]);
+$client->otp->verify(['transaction_id' => 'txn_1', 'recipient' => '+233', 'token' => '123456']);
 $client->otp->lookup(['transaction_id' => 'txn_1']);
 $client->otp->cancel(['transaction_id' => 'txn_1', 'reason' => 'test']);
 
@@ -104,7 +110,7 @@ $expected = [
     '/chimes/send',
     '/chimes/lookup',
     '/chimes/schedule',
-    '/otp/initialize',
+    '/otp/initiate',
     '/otp/verify',
     '/otp/lookup',
     '/otp/cancel',
