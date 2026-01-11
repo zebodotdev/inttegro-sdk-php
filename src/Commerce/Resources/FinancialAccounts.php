@@ -8,7 +8,7 @@ use Commerce\HttpClient;
  * Financial accounts resource for managing payout destinations.
  *
  * Financial accounts represent where your Commerce balance gets paid out. Create mobile money,
- * bank, or Dosh accounts, configure them for push (payouts) or pull (charges) operations,
+ * bank_account, or dosh_account accounts, configure them for push (payouts) or pull (charges) operations,
  * and connect them to your application for automatic settlements.
  *
  * @see https://commerce.zebo.dev/financial-accounts for detailed guides
@@ -25,18 +25,32 @@ class FinancialAccounts
     /**
      * Create a new financial account for receiving payouts.
      *
-     * Creates a wallet (mobile money), bank, or Dosh account. Configure whether the account
+     * Creates a wallet (mobile money), bank_account, or dosh_account account. Configure whether the account
      * supports push operations (receiving payouts), pull operations (being charged), or both.
      * Accounts must be verified before use.
      *
      * @param array $payload Account creation parameters
      *   - label: string - Account label (5-40 characters, required)
-     *   - type: string - Account type: 'wallet', 'bank', or 'dosh' (required)
+     *   - type: string - Account type: 'wallet', 'bank_account', or 'dosh_account' (required)
      *   - reference: string - External reference ID (5-40 characters, required)
      *   - currency: string - Account currency, currently only 'ghs' supported (required)
      *   - description: string - Optional description (0-200 characters)
      *   - pull_configuration: array - Settings for charging this account
      *   - push_configuration: array - Settings for sending payouts to this account
+     *   - bank_account: array - Bank account configuration (required when type is 'bank_account')
+     *     - type: string - 'ghana_bank_account'
+     *     - ghana_bank_account: array
+     *       - number: string - Bank account number
+     *       - sort_code: string - Required if swift_code is not provided
+     *       - swift_code: string - Required if sort_code is not provided
+     *       - owner: array
+     *         - name: string - Account holder full name
+     *         - address: array
+     *           - name: string - Address label
+     *           - line_1: string - Address line 1
+     *           - city: string - City or town
+     *           - region: string - Region or state
+     *           - country: string - Country code or name
      *
      * @return \Commerce\ResponseObject Created financial account
      *

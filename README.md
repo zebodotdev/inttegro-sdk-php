@@ -179,7 +179,7 @@ $client->otp->cancel([
 ```php
 $settings = $client->payouts->setDestinations([
     'ghs' => 'momo:0544998605',
-    'usd' => 'bank:0011223344',
+    'usd' => 'fa_bank_account',
 ]);
 ```
 
