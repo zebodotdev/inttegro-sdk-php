@@ -1,0 +1,19 @@
+{
+  "name": "zebo/commerce-sdk",
+  "description": "Lightweight PHP SDK for the Zebo Commerce API",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Commerce\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=8.1"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.5",
+    "phpstan/phpstan": "^1.11"
+  },
+  "minimum-stability": "stable"
+}
