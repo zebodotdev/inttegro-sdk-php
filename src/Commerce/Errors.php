@@ -24,7 +24,7 @@ class TimeoutError extends NetworkError
 class APIError extends CommerceError
 {
     public int $status;
-    public ?string $code;
+    public $code;
     public ?string $type;
     public ?string $url;
     public ?string $detail;
@@ -44,8 +44,7 @@ class APIError extends CommerceError
         ?string $cause = null,
         $body = null,
         $data = null
-    )
-    {
+    ) {
         parent::__construct($message);
         $this->status = $status;
         $this->code = $code;

@@ -52,7 +52,7 @@ class HttpClient
             $requestHeaders[] = $key . ': ' . $value;
         }
 
-        $response = $this->send('POST', $url, $requestHeaders, json_encode($body ?? []));
+        $response = $this->send('POST', $url, $requestHeaders, json_encode($body));
         return $this->responseObject($response);
     }
 
@@ -219,6 +219,7 @@ class HttpClient
         }
 
         $this->handleErrorResponse($response, $data);
+        throw new \LogicException('Unreachable response handling state.');
     }
 
     private function handleErrorResponse(array $response, $data = null): void
