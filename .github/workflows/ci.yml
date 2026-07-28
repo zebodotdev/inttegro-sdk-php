@@ -23,20 +23,17 @@ jobs:
           coverage: xdebug
 
       - name: Install dependencies
-        working-directory: sdks/php
         run: composer install --no-interaction --no-progress
 
       - name: Run static analysis
-        working-directory: sdks/php
         run: vendor/bin/phpstan analyse --no-progress
 
       - name: Run tests
-        working-directory: sdks/php
         run: vendor/bin/phpunit --coverage-clover coverage.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          file: sdks/php/coverage.xml
+          file: coverage.xml
           flags: php
           name: php-sdk
