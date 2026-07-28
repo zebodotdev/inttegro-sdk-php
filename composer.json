@@ -6,7 +6,10 @@
   "autoload": {
     "psr-4": {
       "Commerce\\": "src/Commerce/"
-    }
+    },
+    "files": [
+      "src/Commerce/Errors.php"
+    ]
   },
   "require": {
     "php": ">=8.1"

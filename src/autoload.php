@@ -2,7 +2,7 @@
 
 spl_autoload_register(function ($class) {
     $prefix = 'Commerce\\';
-    $baseDir = __DIR__ . '/';
+    $baseDir = __DIR__ . '/Commerce/';
 
     if (strncmp($prefix, $class, strlen($prefix)) !== 0) {
         return;
@@ -15,3 +15,5 @@ spl_autoload_register(function ($class) {
         require $file;
     }
 });
+
+require_once __DIR__ . '/Commerce/Errors.php';
