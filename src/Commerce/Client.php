@@ -14,13 +14,13 @@ use Commerce\Resources\Orders;
 use Commerce\Resources\Otp;
 use Commerce\Resources\PaymentMethods;
 use Commerce\Resources\Payouts;
-use Commerce\Resources\Platform;
 use Commerce\Resources\Products;
 use Commerce\Resources\Prices;
 use Commerce\Resources\Schedules;
 use Commerce\Resources\Spec;
 use Commerce\Resources\Balances;
 use Commerce\Resources\UploadRequests;
+use Commerce\Resources\Apps;
 
 class Client
 {
@@ -39,7 +39,7 @@ class Client
     public Broadcasts $broadcasts;
     public MessageTemplates $messageTemplates;
     public Otp $otp;
-    public Platform $platform;
+    public Apps $apps;
     public Spec $spec;
     public Balances $balances;
     public UploadRequests $uploadRequests;
@@ -69,7 +69,7 @@ class Client
         $this->broadcasts = new Broadcasts($this->http);
         $this->messageTemplates = new MessageTemplates($this->http);
         $this->otp = new Otp($this->http);
-        $this->platform = new Platform($this->http);
+        $this->apps = new Apps($this->http);
         $this->spec = new Spec($this->http);
         $this->balances = new Balances($this->http);
         $this->uploadRequests = new UploadRequests($this->http);

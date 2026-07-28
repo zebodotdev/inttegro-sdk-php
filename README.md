@@ -1,6 +1,6 @@
 # Zebo Commerce PHP SDK
 
-Lightweight PHP client for the Zebo Commerce API. Covers orders, payments, payouts, OTP, payment methods, chimes, balance transactions, financial accounts, platform apps/keys/sessions, and specs.
+Lightweight PHP client for the Zebo Commerce API. Covers orders, payments, payouts, OTP, payment methods, chimes, balance transactions, financial accounts, apps, and specs.
 
 ## Installation
 
@@ -285,12 +285,12 @@ $client->prices->update([
 ]);
 ```
 
-### Platform: apps, keys, sessions
+### Apps
 
 ```php
-$app = $client->platform->createApp(['name' => 'My App']);
-$key = $client->platform->generateKey(['app_id' => $app['app']['id'], 'name' => 'Server key']);
-$session = $client->platform->newSession(['app_id' => $app['app']['id']]);
+$app = $client->apps->create(['name' => 'My App']);
+$currentApp = $client->apps->lookup();
+$updatedApp = $client->apps->update(['alias' => 'my-app']);
 ```
 
 ## Available resources
@@ -308,7 +308,7 @@ $session = $client->platform->newSession(['app_id' => $app['app']['id']]);
 - `$client->broadcasts->lookup|cancel`
 - `$client->otp->initiate|verify|lookup|cancel`
 - `$client->balances->get`
-- `$client->platform->createApp|generateKey|newSession`
+- `$client->apps->create|lookup|update`
 - `$client->spec->countries`
 
 ## Development

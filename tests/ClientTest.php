@@ -118,9 +118,9 @@ final class ClientTest extends TestCase
         $client->otp->lookup(['transaction_id' => 'txn_1']);
         $client->otp->cancel(['transaction_id' => 'txn_1', 'reason' => 'test']);
 
-        $client->platform->createApp(['name' => 'My App']);
-        $client->platform->generateKey(['app_id' => 'app_1']);
-        $client->platform->newSession(['app_id' => 'app_1']);
+        $client->apps->create(['name' => 'My App']);
+        $client->apps->lookup();
+        $client->apps->update(['alias' => 'my-app']);
 
         $client->spec->countries();
         $client->balances->get();
@@ -190,8 +190,8 @@ final class ClientTest extends TestCase
             '/otp/lookup',
             '/otp/cancel',
             '/apps/create',
-            '/keys/generate',
-            '/sessions/new',
+            '/apps/lookup',
+            '/apps/update',
             '/spec/countries',
             '/balances',
         ];
@@ -261,5 +261,31 @@ final class ClientTest extends TestCase
         $body = json_decode($requests[0]['payload'], true);
         $this->assertArrayNotHasKey('request_meta', $body);
         $this->assertArrayNotHasKey('idempotency_key', $body);
+    }
+
+    public function test_message_templates_create_uses_request_meta_idempotency_by_default(): void
+    {
+        $requests = [];
+        $adapter = function ($method, $url, $headers, $payload) use (&$requests) {
+            $requests[] = compact('method', 'url', 'headers', 'payload');
+            return [
+                'status' => 200,
+                'body' => json_encode(['ok' => true]),
+                'headers' => ['content-type' => 'application/json'],
+            ];
+        };
+
+        $client = new Client('test-key', 'https://api.zebo.dev', 5, $adapter);
+        $client->messageTemplates->create([
+            'name' => 'welcome_sms',
+            'channel' => 'sms',
+            'purpose' => 'marketing',
+            'sms' => ['message_template' => 'Welcome {{name}}'],
+        ]);
+
+        $body = json_decode($requests[0]['payload'], true);
+        $headers = implode("\n", $requests[0]['headers']);
+        $this->assertStringNotContainsString('Idempotency-Key:', $headers);
+        $this->assertMatchesRegularExpression(self::UUID_V7_REGEX, $body['request_meta']['idempotency_key']);
     }
 }

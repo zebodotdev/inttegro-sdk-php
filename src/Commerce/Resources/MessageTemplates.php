@@ -48,6 +48,8 @@ class MessageTemplates
 
     private function idempotencyHeaders(?string $idempotencyKey): array
     {
-        return ['Idempotency-Key' => $idempotencyKey ?: bin2hex(random_bytes(16))];
+        return $idempotencyKey === null || trim($idempotencyKey) === ''
+            ? []
+            : ['Idempotency-Key' => $idempotencyKey];
     }
 }

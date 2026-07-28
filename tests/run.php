@@ -112,9 +112,9 @@ $client->otp->verify(['transaction_id' => 'txn_1', 'recipient' => '+233', 'token
 $client->otp->lookup(['transaction_id' => 'txn_1']);
 $client->otp->cancel(['transaction_id' => 'txn_1', 'reason' => 'test']);
 
-$client->platform->createApp(['name' => 'My App']);
-$client->platform->generateKey(['app_id' => 'app_1']);
-$client->platform->newSession(['app_id' => 'app_1']);
+$client->apps->create(['name' => 'My App']);
+$client->apps->lookup();
+$client->apps->update(['alias' => 'my-app']);
 
 $client->spec->countries();
 $client->balances->get();
@@ -182,8 +182,8 @@ $expected = [
     '/otp/lookup',
     '/otp/cancel',
     '/apps/create',
-    '/keys/generate',
-    '/sessions/new',
+    '/apps/lookup',
+    '/apps/update',
     '/spec/countries',
     '/balances',
 ];
