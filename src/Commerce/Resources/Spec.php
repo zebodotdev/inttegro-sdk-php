@@ -11,7 +11,7 @@ use Commerce\HttpClient;
  * and other platform capabilities. Use specs to build dynamic forms, validate inputs,
  * and adapt your integration to different markets.
  *
- * @see https://commerce.zebo.dev/specifications for spec guides
+ * @see https://studio.zebo.dev/specifications for spec guides
  */
 class Spec
 {
@@ -55,7 +55,7 @@ class Spec
      * }
      * ```
      *
-     * @see https://commerce.zebo.dev/country-specifications for spec details
+     * @see https://studio.zebo.dev/country-specifications for spec details
      */
     public function countries(): \Commerce\ResponseObject
     {

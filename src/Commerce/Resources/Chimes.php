@@ -11,7 +11,7 @@ use Commerce\HttpClient;
  * confirmations, payment receipts, shipping updates, or custom notifications triggered
  * by your application logic.
  *
- * @see https://commerce.zebo.dev/chimes for detailed guides
+ * @see https://studio.zebo.dev/chimes for detailed guides
  */
 class Chimes
 {
@@ -59,7 +59,7 @@ class Chimes
      * ]);
      * ```
      *
-     * @see https://commerce.zebo.dev/send-customer-notification for notification guide
+     * @see https://studio.zebo.dev/send-customer-notification for notification guide
      */
     public function send(array $payload): \Commerce\ResponseObject
     {
@@ -89,7 +89,7 @@ class Chimes
      * echo "Sent at: {$chime['sent_at']}\n";
      * ```
      *
-     * @see https://commerce.zebo.dev/chimes for chime overview
+     * @see https://studio.zebo.dev/chimes for chime overview
      */
     public function lookup(string $chimeId): \Commerce\ResponseObject
     {
@@ -125,7 +125,7 @@ class Chimes
      * echo "Will send at: {$schedule['send_after']}\n";
      * ```
      *
-     * @see https://commerce.zebo.dev/send-scheduled-notifications for scheduling guide
+     * @see https://studio.zebo.dev/send-scheduled-notifications for scheduling guide
      */
     public function schedule(array $payload): \Commerce\ResponseObject
     {

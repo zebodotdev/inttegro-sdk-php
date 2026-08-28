@@ -11,7 +11,7 @@ use Commerce\HttpClient;
  * wallets, verify ownership, and charge saved methods without re-collecting details.
  * Essential for subscription billing and returning customer checkout flows.
  *
- * @see https://commerce.zebo.dev/payment-methods for detailed guides
+ * @see https://studio.zebo.dev/payment-methods for detailed guides
  */
 class PaymentMethods
 {
@@ -55,7 +55,7 @@ class PaymentMethods
      * echo "Verification status: {$pm['verification']['status']}\n";
      * ```
      *
-     * @see https://commerce.zebo.dev/charge-repeat-customers for saved payment method guide
+     * @see https://studio.zebo.dev/charge-repeat-customers for saved payment method guide
      */
     public function tokenize(array $payload): \Commerce\ResponseObject
     {
@@ -86,7 +86,7 @@ class PaymentMethods
      * }
      * ```
      *
-     * @see https://commerce.zebo.dev/charge-repeat-customers for verification flow
+     * @see https://studio.zebo.dev/charge-repeat-customers for verification flow
      */
     public function verify(string $paymentMethodId, array $requestMeta = []): \Commerce\ResponseObject
     {
@@ -121,7 +121,7 @@ class PaymentMethods
      * }
      * ```
      *
-     * @see https://commerce.zebo.dev/charge-repeat-customers for verification guide
+     * @see https://studio.zebo.dev/charge-repeat-customers for verification guide
      */
     public function confirmVerification(array $payload): \Commerce\ResponseObject
     {
@@ -151,7 +151,7 @@ class PaymentMethods
      * echo "Verified: " . ($pm['verification']['status'] === 'verified' ? 'yes' : 'no') . "\n";
      * ```
      *
-     * @see https://commerce.zebo.dev/payment-methods for payment method overview
+     * @see https://studio.zebo.dev/payment-methods for payment method overview
      */
     public function lookup(string $paymentMethodId): \Commerce\ResponseObject
     {
@@ -179,7 +179,7 @@ class PaymentMethods
      * echo "Payment method removed\n";
      * ```
      *
-     * @see https://commerce.zebo.dev/payment-methods for payment method management
+     * @see https://studio.zebo.dev/payment-methods for payment method management
      */
     public function delete(string $paymentMethodId, array $requestMeta = []): \Commerce\ResponseObject
     {
@@ -205,7 +205,7 @@ class PaymentMethods
      * // View supported payment types and configuration
      * ```
      *
-     * @see https://commerce.zebo.dev/payment-methods for payment method overview
+     * @see https://studio.zebo.dev/payment-methods for payment method overview
      */
     public function settings(): \Commerce\ResponseObject
     {
