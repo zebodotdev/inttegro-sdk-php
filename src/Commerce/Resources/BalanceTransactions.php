@@ -11,7 +11,7 @@ use Commerce\HttpClient;
  * refunds, fees, and payouts. Each transaction shows amounts, currency, source, and aging
  * status for payout eligibility.
  *
- * @see https://studio.zebo.dev/balance-transactions for detailed guide
+ * @see https://studio.inttegro.com/balance-transactions for detailed guide
  */
 class BalanceTransactions
 {
@@ -53,8 +53,8 @@ class BalanceTransactions
      * }
      * ```
      *
-     * @see https://studio.zebo.dev/balance-transactions for balance transaction guide
-     * @see https://studio.zebo.dev/pagination for pagination guide
+     * @see https://studio.inttegro.com/balance-transactions for balance transaction guide
+     * @see https://studio.inttegro.com/pagination for pagination guide
      */
     public function page(array $payload = []): \Commerce\ResponseObject
     {

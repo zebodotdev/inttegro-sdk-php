@@ -10,7 +10,7 @@ use Commerce\HttpClient;
  * Payouts transfer funds from your Commerce balance to configured financial accounts.
  * Control payout schedules, set currency-specific destinations, and enable foreign exchange conversion.
  *
- * @see https://studio.zebo.dev/payouts for detailed guides
+ * @see https://studio.inttegro.com/payouts for detailed guides
  */
 class Payouts
 {
@@ -46,7 +46,7 @@ class Payouts
      * }
      * ```
      *
-     * @see https://studio.zebo.dev/manage-payout-destinations for payout destination guide
+     * @see https://studio.inttegro.com/manage-payout-destinations for payout destination guide
      */
     public function setDestinations(array $destinations): \Commerce\ResponseObject
     {
@@ -70,7 +70,7 @@ class Payouts
      * echo "Type: {$settings['schedule']['type']}\n";
      * ```
      *
-     * @see https://studio.zebo.dev/payouts for payout overview
+     * @see https://studio.inttegro.com/payouts for payout overview
      */
     public function settings(): \Commerce\ResponseObject
     {
@@ -96,7 +96,7 @@ class Payouts
      * }
      * ```
      *
-     * @see https://studio.zebo.dev/disable-automatic-payouts for manual payout guide
+     * @see https://studio.inttegro.com/disable-automatic-payouts for manual payout guide
      */
     public function disableAutomatic(): \Commerce\ResponseObject
     {
@@ -117,7 +117,7 @@ class Payouts
      * echo "FX conversion enabled for payouts\n";
      * ```
      *
-     * @see https://studio.zebo.dev/enable-fx-payouts for FX payout guide
+     * @see https://studio.inttegro.com/enable-fx-payouts for FX payout guide
      */
     public function enableFx(): \Commerce\ResponseObject
     {
@@ -138,7 +138,7 @@ class Payouts
      * echo "FX conversion disabled. Payouts will match balance currencies.\n";
      * ```
      *
-     * @see https://studio.zebo.dev/payouts-fx-conversion for FX details
+     * @see https://studio.inttegro.com/payouts-fx-conversion for FX details
      */
     public function disableFx(): \Commerce\ResponseObject
     {
@@ -172,8 +172,8 @@ class Payouts
      * }
      * ```
      *
-     * @see https://studio.zebo.dev/pagination for pagination guide
-     * @see https://studio.zebo.dev/payouts for payout overview
+     * @see https://studio.inttegro.com/pagination for pagination guide
+     * @see https://studio.inttegro.com/payouts for payout overview
      */
     public function page(array $payload = []): \Commerce\ResponseObject
     {

@@ -11,7 +11,7 @@ use Commerce\HttpClient;
  * bank_account, or dosh_account accounts, configure them for push (payouts) or pull (charges) operations,
  * and connect them to your application for automatic settlements.
  *
- * @see https://studio.zebo.dev/financial-accounts for detailed guides
+ * @see https://studio.inttegro.com/financial-accounts for detailed guides
  */
 class FinancialAccounts
 {
@@ -85,7 +85,7 @@ class FinancialAccounts
      * echo "Status: {$account['status']}\n";
      * ```
      *
-     * @see https://studio.zebo.dev/set-up-financial-account for account setup guide
+     * @see https://studio.inttegro.com/set-up-financial-account for account setup guide
      */
     public function create(array $payload): \Commerce\ResponseObject
     {
@@ -116,7 +116,7 @@ class FinancialAccounts
      * echo "Status: {$account['status']}\n";
      * ```
      *
-     * @see https://studio.zebo.dev/financial-accounts for financial account overview
+     * @see https://studio.inttegro.com/financial-accounts for financial account overview
      */
     public function lookup(string $accountId): \Commerce\ResponseObject
     {
@@ -166,7 +166,7 @@ class FinancialAccounts
      * echo "Account connected and ready for payouts\n";
      * ```
      *
-     * @see https://studio.zebo.dev/set-up-financial-account for connection guide
+     * @see https://studio.inttegro.com/set-up-financial-account for connection guide
      */
     public function connect(array $payload): \Commerce\ResponseObject
     {
@@ -195,7 +195,7 @@ class FinancialAccounts
      * echo "Account archived\n";
      * ```
      *
-     * @see https://studio.zebo.dev/financial-accounts for account management
+     * @see https://studio.inttegro.com/financial-accounts for account management
      */
     public function archive(array $payload): \Commerce\ResponseObject
     {
@@ -223,8 +223,8 @@ class FinancialAccounts
      * }
      * ```
      *
-     * @see https://studio.zebo.dev/financial-accounts for account overview
-     * @see https://studio.zebo.dev/pagination for pagination guide
+     * @see https://studio.inttegro.com/financial-accounts for account overview
+     * @see https://studio.inttegro.com/pagination for pagination guide
      */
     public function page(array $payload = []): \Commerce\ResponseObject
     {
@@ -256,7 +256,7 @@ class FinancialAccounts
      * }
      * ```
      *
-     * @see https://studio.zebo.dev/set-up-financial-account for verification guide
+     * @see https://studio.inttegro.com/set-up-financial-account for verification guide
      */
     public function verify(array $payload): \Commerce\ResponseObject
     {

@@ -11,7 +11,7 @@ use Commerce\HttpClient;
  * codes via SMS or email, verify customer-provided codes, and manage OTP lifecycle.
  * Used for payment confirmations, account verification, and authentication flows.
  *
- * @see https://studio.zebo.dev/otp for OTP integration guide
+ * @see https://studio.inttegro.com/otp for OTP integration guide
  */
 class Otp
 {
@@ -54,7 +54,7 @@ class Otp
      * echo "Expires at: {$txn['expires_at']}\n";
      * ```
      *
-     * @see https://studio.zebo.dev/otp for OTP implementation guide
+     * @see https://studio.inttegro.com/otp for OTP implementation guide
      */
     public function initiate(array $payload): \Commerce\ResponseObject
     {
@@ -91,7 +91,7 @@ class Otp
      * }
      * ```
      *
-     * @see https://studio.zebo.dev/otp for verification flow
+     * @see https://studio.inttegro.com/otp for verification flow
      */
     public function verify(array $payload): \Commerce\ResponseObject
     {
@@ -121,7 +121,7 @@ class Otp
      * echo "Expires: {$txn['expires_at']}\n";
      * ```
      *
-     * @see https://studio.zebo.dev/otp for OTP overview
+     * @see https://studio.inttegro.com/otp for OTP overview
      */
     public function lookup(array $payload): \Commerce\ResponseObject
     {
@@ -151,7 +151,7 @@ class Otp
      * echo "OTP session cancelled\n";
      * ```
      *
-     * @see https://studio.zebo.dev/otp for session management
+     * @see https://studio.inttegro.com/otp for session management
      */
     public function cancel(array $payload): \Commerce\ResponseObject
     {

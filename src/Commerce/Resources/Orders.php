@@ -11,7 +11,7 @@ use Commerce\HttpClient;
  * line items, customer information, and payment details. Use this resource to create
  * orders, charge customers, handle confirmations, and process refunds.
  *
- * @see https://studio.zebo.dev/orders for detailed guides
+ * @see https://studio.inttegro.com/orders for detailed guides
  */
 class Orders
 {
@@ -90,8 +90,8 @@ class Orders
      * echo "Created order: {$order['id']}\n";
      * ```
      *
-     * @see https://studio.zebo.dev/accept-a-payment for payment flow guide
-     * @see https://studio.zebo.dev/order-lifecycle for order states
+     * @see https://studio.inttegro.com/accept-a-payment for payment flow guide
+     * @see https://studio.inttegro.com/order-lifecycle for order states
      */
     public function create(array $payload): \Commerce\ResponseObject
     {
@@ -135,7 +135,7 @@ class Orders
      * }
      * ```
      *
-     * @see https://studio.zebo.dev/orders for API reference
+     * @see https://studio.inttegro.com/orders for API reference
      */
     public function lookup(string $orderId, array $options = []): \Commerce\ResponseObject
     {
@@ -188,8 +188,8 @@ class Orders
      * ]);
      * ```
      *
-     * @see https://studio.zebo.dev/accept-a-payment for payment flow guide
-     * @see https://studio.zebo.dev/charge-repeat-customers for saved payment methods
+     * @see https://studio.inttegro.com/accept-a-payment for payment flow guide
+     * @see https://studio.inttegro.com/charge-repeat-customers for saved payment methods
      */
     public function pay(array $payload): \Commerce\ResponseObject
     {
@@ -221,7 +221,7 @@ class Orders
      * }
      * ```
      *
-     * @see https://studio.zebo.dev/accept-a-payment for complete payment flow
+     * @see https://studio.inttegro.com/accept-a-payment for complete payment flow
      */
     public function confirmPayment(array $payload): \Commerce\ResponseObject
     {
@@ -248,7 +248,7 @@ class Orders
      * echo "New OTP sent to customer\n";
      * ```
      *
-     * @see https://studio.zebo.dev/accept-a-payment for payment confirmation flow
+     * @see https://studio.inttegro.com/accept-a-payment for payment confirmation flow
      */
     public function requestConfirmation(string $orderId, array $requestMeta = []): \Commerce\ResponseObject
     {
@@ -279,7 +279,7 @@ class Orders
      * echo "Order finalized at: {$order['sealed_at']}\n";
      * ```
      *
-     * @see https://studio.zebo.dev/order-lifecycle for order states
+     * @see https://studio.inttegro.com/order-lifecycle for order states
      */
     public function finalize(string $orderId, array $requestMeta = []): \Commerce\ResponseObject
     {
@@ -338,7 +338,7 @@ class Orders
      * echo "Order completed at: {$order['completed_at']}\n";
      * ```
      *
-     * @see https://studio.zebo.dev/order-lifecycle for order states
+     * @see https://studio.inttegro.com/order-lifecycle for order states
      */
     public function complete(array $payload): \Commerce\ResponseObject
     {
@@ -366,7 +366,7 @@ class Orders
      * echo "Order {$order['id']} has been cancelled\n";
      * ```
      *
-     * @see https://studio.zebo.dev/order-lifecycle for order states
+     * @see https://studio.inttegro.com/order-lifecycle for order states
      */
     public function cancel(string $orderId, array $requestMeta = []): \Commerce\ResponseObject
     {
@@ -396,7 +396,7 @@ class Orders
      * echo "Order refunded. Refund ID: {$order['payment']['refund']['id']}\n";
      * ```
      *
-     * @see https://studio.zebo.dev/retry-a-payment for payment retry guide
+     * @see https://studio.inttegro.com/retry-a-payment for payment retry guide
      */
     public function refund(string $orderId): \Commerce\ResponseObject
     {
@@ -434,8 +434,8 @@ class Orders
      * }
      * ```
      *
-     * @see https://studio.zebo.dev/pagination for pagination guide
-     * @see https://studio.zebo.dev/orders for API reference
+     * @see https://studio.inttegro.com/pagination for pagination guide
+     * @see https://studio.inttegro.com/orders for API reference
      */
     public function page(array $payload = []): \Commerce\ResponseObject
     {
