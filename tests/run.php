@@ -16,7 +16,7 @@ $adapter = function ($method, $url, $headers, $payload) use (&$requests) {
     ];
 };
 
-$client = new Client('test-key', 'https://api.zebo.dev', 5, $adapter);
+$client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
 
 $client->orders->create(['number' => 'ORDER-1']);
 $client->orders->new(['number' => 'ORDER-2']);
@@ -206,7 +206,7 @@ $errorAdapter = function () {
     ];
 };
 
-$errorClient = new Client('bad-key', 'https://api.zebo.dev', 5, $errorAdapter);
+$errorClient = new Client('bad-key', 'https://api.inttegro.com', 5, $errorAdapter);
 
 $caught = false;
 try {

@@ -12,7 +12,7 @@ class HttpClient
     private $adapter;
     private string $userAgent;
 
-    public function __construct(string $apiKey, string $baseUrl = 'https://api.zebo.dev', int $timeout = 30, $adapter = null)
+    public function __construct(string $apiKey, string $baseUrl = 'https://api.inttegro.com', int $timeout = 30, $adapter = null)
     {
         if (trim($apiKey) === '') {
             throw new \InvalidArgumentException('apiKey is required');

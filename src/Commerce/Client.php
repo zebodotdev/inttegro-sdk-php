@@ -48,7 +48,7 @@ class Client
 
     public function __construct(
         string $apiKey,
-        string $baseUrl = 'https://api.zebo.dev',
+        string $baseUrl = 'https://api.inttegro.com',
         int $timeout = 30,
         $adapter = null
     ) {

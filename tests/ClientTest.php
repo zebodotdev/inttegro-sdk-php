@@ -20,7 +20,7 @@ final class ClientTest extends TestCase
             ];
         };
 
-        $client = new Client('test-key', 'https://api.zebo.dev', 5, $adapter);
+        $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
 
         $client->orders->create(['number' => 'ORDER-1']);
         $client->orders->new(['number' => 'ORDER-2']);
@@ -217,7 +217,7 @@ final class ClientTest extends TestCase
             ];
         };
 
-        $client = new Client('bad', 'https://api.zebo.dev', 5, $errorAdapter);
+        $client = new Client('bad', 'https://api.inttegro.com', 5, $errorAdapter);
 
         $this->expectException(AuthenticationError::class);
         $client->orders->lookup('or_1');
@@ -235,7 +235,7 @@ final class ClientTest extends TestCase
             ];
         };
 
-        $client = new Client('test-key', 'https://api.zebo.dev', 5, $adapter);
+        $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
         $client->orders->create(['number' => 'ORDER-1', 'idempotency_key' => 'legacy']);
 
         $body = json_decode($requests[0]['payload'], true);
@@ -255,7 +255,7 @@ final class ClientTest extends TestCase
             ];
         };
 
-        $client = new Client('test-key', 'https://api.zebo.dev', 5, $adapter);
+        $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
         $client->orders->lookup('or_1');
 
         $body = json_decode($requests[0]['payload'], true);
@@ -275,7 +275,7 @@ final class ClientTest extends TestCase
             ];
         };
 
-        $client = new Client('test-key', 'https://api.zebo.dev', 5, $adapter);
+        $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
         $client->messageTemplates->create([
             'name' => 'welcome_sms',
             'channel' => 'sms',
