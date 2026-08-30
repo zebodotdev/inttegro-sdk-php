@@ -28,9 +28,27 @@ class Prices
         return $this->http->post('/prices/lookup', ['price_id' => $priceId]);
     }
 
+    /** Page through prices (POST /prices/page). */
+    public function page(array $payload = []): \Commerce\ResponseObject
+    {
+        return $this->http->post('/prices/page', $payload);
+    }
+
     /** Update a price (POST /prices/update). */
     public function update(array $payload): \Commerce\ResponseObject
     {
         return $this->http->post('/prices/update', $payload);
+    }
+
+    /** Activate a price (POST /prices/activate). */
+    public function activate(string $priceId): \Commerce\ResponseObject
+    {
+        return $this->http->post('/prices/activate', ['price_id' => $priceId]);
+    }
+
+    /** Deactivate a price (POST /prices/deactivate). */
+    public function deactivate(string $priceId): \Commerce\ResponseObject
+    {
+        return $this->http->post('/prices/deactivate', ['price_id' => $priceId]);
     }
 }

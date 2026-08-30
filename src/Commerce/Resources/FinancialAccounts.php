@@ -324,4 +324,10 @@ class FinancialAccounts
 
         return $this->http->post('/financial_accounts/disconnect', $payload);
     }
+
+    /** Reconnect a previously disconnected financial account. */
+    public function reconnect(string $accountId): \Commerce\ResponseObject
+    {
+        return $this->http->post('/financial_accounts/reconnect', ['account_id' => $accountId]);
+    }
 }

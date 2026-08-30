@@ -96,6 +96,12 @@ class Chimes
         return $this->http->post('/chimes/lookup', ['chime_id' => $chimeId]);
     }
 
+    /** Retrieve a paginated list of chimes. */
+    public function page(array $payload = []): \Commerce\ResponseObject
+    {
+        return $this->http->post('/chimes/page', $payload);
+    }
+
     /**
      * Schedule a notification to be sent at a future time.
      *

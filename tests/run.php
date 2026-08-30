@@ -6,6 +6,55 @@ require __DIR__ . '/TestCase.php';
 use Commerce\Client;
 use Commerce\AuthenticationError;
 
+function openApiSpecPaths(): array
+{
+    $specPath = getenv('COMMERCE_OPENAPI_SPEC') ?: dirname(__DIR__) . '/../../openapi/commerce.yml';
+    assertTrue(is_file($specPath), "OpenAPI spec not found at $specPath");
+
+    $contents = file_get_contents($specPath);
+    assertTrue(is_string($contents), "Unable to read OpenAPI spec at $specPath");
+
+    preg_match_all('/^    (\/[A-Za-z0-9_\/{}.-]+):\s*$/m', $contents, $matches);
+    $paths = array_values(array_unique($matches[1]));
+    sort($paths);
+
+    return $paths;
+}
+
+function implementedSdkPaths(): array
+{
+    $resourceFiles = glob(dirname(__DIR__) . '/src/Commerce/Resources/*.php') ?: [];
+    $paths = [];
+    foreach ($resourceFiles as $resourceFile) {
+        $contents = file_get_contents($resourceFile);
+        if (!is_string($contents)) {
+            continue;
+        }
+        preg_match_all(
+            '/->(?:get|post|postWithHeaders|postMultipart|postBinaryJson)\(\s*[\'"](\/[a-z0-9_\/-]+)[\'"]/m',
+            $contents,
+            $matches
+        );
+        array_push($paths, ...$matches[1]);
+    }
+
+    $paths = array_values(array_unique($paths));
+    sort($paths);
+
+    return $paths;
+}
+
+$missing = array_values(array_diff(
+    openApiSpecPaths(),
+    ['/file_links/open', '/upload_requests/upload'],
+    implementedSdkPaths()
+));
+assertEquals(
+    [],
+    $missing,
+    "SDK implementation is missing explicit OpenAPI path coverage:\n" . implode("\n", $missing)
+);
+
 $requests = [];
 $adapter = function ($method, $url, $headers, $payload) use (&$requests) {
     $requests[] = compact('method', 'url', 'headers', 'payload');
@@ -19,8 +68,9 @@ $adapter = function ($method, $url, $headers, $payload) use (&$requests) {
 $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
 
 $client->orders->create(['number' => 'ORDER-1']);
-$client->orders->new(['number' => 'ORDER-2']);
+$client->orders->createLegacy(['number' => 'ORDER-2']);
 $client->orders->lookup('or_1');
+$client->orders->update(['order_id' => 'or_1', 'number' => 'ORDER-1-REV2']);
 $client->orders->pay(['order_id' => 'or_1']);
 $client->orders->confirmPayment(['order_id' => 'or_1', 'token' => '123456']);
 $client->orders->requestConfirmation('or_1');
@@ -34,17 +84,31 @@ $client->paymentMethods->tokenize(['type' => 'mobile_money']);
 $client->paymentMethods->verify('pm_1');
 $client->paymentMethods->confirmVerification(['payment_method_id' => 'pm_1', 'token' => '123456']);
 $client->paymentMethods->lookup('pm_1');
+$client->paymentMethods->page(['customer_id' => 'cu_1']);
+$client->paymentMethods->update(['payment_method_id' => 'pm_1', 'active' => true]);
+$client->paymentMethods->activate('pm_1');
+$client->paymentMethods->disactivate('pm_1');
+$client->paymentMethods->archive('pm_1');
+$client->paymentMethods->unarchive('pm_1');
 $client->paymentMethods->delete('pm_1');
 $client->paymentMethods->settings();
 
 $client->payouts->setDestinations(['ghs' => 'dest']);
 $client->payouts->settings();
 $client->payouts->disableAutomatic();
+$client->payouts->enableAutomatic();
 $client->payouts->enableFx();
 $client->payouts->disableFx();
 $client->payouts->page([]);
+$client->payouts->schedule([
+    'destination_id' => 'fa_1',
+    'max_amount' => 1,
+    'reference' => 'PAYOUT-1',
+]);
+$client->payouts->lookup('po_1');
 $client->payouts->cancel('po_1');
 
+$client->balanceTransactions->lookup('bt_1');
 $client->balanceTransactions->page([]);
 
 $client->financialAccounts->create(['name' => 'Account']);
@@ -64,6 +128,19 @@ $client->financialAccounts->disconnect([
     'account_id' => 'fa_1',
     'unset_as_payout_destination' => true,
 ]);
+$client->financialAccounts->reconnect('fa_1');
+
+$client->fileReferences->reconcile([
+    'resource' => ['type' => 'product', 'id' => 'prod_1'],
+    'file_ids' => ['file_1'],
+]);
+
+$client->keys->generate(['label' => 'Production']);
+$client->keys->page(['number' => 1, 'size' => 20]);
+$client->keys->lookup('sk_1');
+$client->keys->update(['secret_key_id' => 'sk_1', 'label' => 'Checkout']);
+$client->keys->destroy('sk_1');
+$client->keys->usage(['secret_key_id' => 'sk_1', 'number' => 1, 'size' => 20]);
 
 $client->customers->create(['name' => 'Jane Doe']);
 $client->customers->lookup('cu_1');
@@ -85,6 +162,7 @@ $client->products->page(['page_number' => 1]);
 
 $client->chimes->send(['message' => 'hi']);
 $client->chimes->lookup('ch_1');
+$client->chimes->page(['page_number' => 1, 'page_size' => 20]);
 $client->chimes->schedule([
     'recipients' => ['+233544998605'],
     'full_message' => 'later',
@@ -116,14 +194,25 @@ $client->apps->create(['name' => 'My App']);
 $client->apps->lookup();
 $client->apps->update(['alias' => 'my-app']);
 
+$client->purchaseIntents->create([
+    'product_id' => 'prod_1',
+    'price_id' => 'pr_1',
+    'quantity' => ['min' => 1, 'max' => 5],
+]);
+$client->purchaseIntents->update(['id' => 'sale_1', 'maximum_quantity' => 3]);
+$client->purchaseIntents->cancel('sale_1');
+$client->purchaseIntents->lookup('sale_1');
+$client->purchaseIntents->page(['page_number' => 1, 'page_size' => 20]);
+
 $client->spec->countries();
 $client->balances->get();
 
 $paths = array_map(fn($req) => parse_url($req['url'], PHP_URL_PATH), $requests);
 $expected = [
-    '/orders/new',
+    '/orders/create',
     '/orders/new',
     '/orders/lookup',
+    '/orders/update',
     '/orders/pay',
     '/orders/confirm_payment',
     '/orders/request_confirmation',
@@ -136,15 +225,25 @@ $expected = [
     '/payment_methods/verify',
     '/payment_methods/confirm_verification',
     '/payment_methods/lookup',
+    '/payment_methods/page',
+    '/payment_methods/update',
+    '/payment_methods/activate',
+    '/payment_methods/disactivate',
+    '/payment_methods/archive',
+    '/payment_methods/unarchive',
     '/payment_methods/delete',
     '/payment_methods/settings',
     '/payouts/set_destinations',
     '/payouts/settings',
     '/payouts/disable',
+    '/payouts/enable',
     '/payouts/enable_fx',
     '/payouts/disable_fx',
     '/payouts/page',
+    '/payouts/schedule',
+    '/payouts/lookup',
     '/payouts/cancel',
+    '/balance_transactions/lookup',
     '/balance_transactions/page',
     '/financial_accounts/create',
     '/financial_accounts/lookup',
@@ -157,6 +256,14 @@ $expected = [
     '/financial_accounts/enable_pull',
     '/financial_accounts/disable_pull',
     '/financial_accounts/disconnect',
+    '/financial_accounts/reconnect',
+    '/file_references/reconcile',
+    '/keys/generate',
+    '/keys/page',
+    '/keys/lookup',
+    '/keys/update',
+    '/keys/destroy',
+    '/keys/usage',
     '/customers/create',
     '/customers/lookup',
     '/customers/page',
@@ -171,6 +278,7 @@ $expected = [
     '/products/page',
     '/chimes/send',
     '/chimes/lookup',
+    '/chimes/page',
     '/chimes/schedule',
     '/chimes/broadcast',
     '/schedules/lookup',
@@ -184,6 +292,11 @@ $expected = [
     '/apps/create',
     '/apps/lookup',
     '/apps/update',
+    '/purchase_intents/create',
+    '/purchase_intents/update',
+    '/purchase_intents/cancel',
+    '/purchase_intents/lookup',
+    '/purchase_intents/page',
     '/spec/countries',
     '/balances',
 ];

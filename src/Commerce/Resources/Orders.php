@@ -95,20 +95,13 @@ class Orders
      */
     public function create(array $payload): \Commerce\ResponseObject
     {
-        return $this->http->post('/orders/new', $payload);
+        return $this->http->post('/orders/create', $payload);
     }
 
-    /**
-     * Alias for create(). Create a new order with line items, customer, and payment details.
-     *
-     * @param array $payload Order creation parameters (see create() for details)
-     * @return \Commerce\ResponseObject Response containing the created order
-     *
-     * @see create()
-     */
-    public function new(array $payload): \Commerce\ResponseObject
+    /** Compatibility route for POST /orders/new. Prefer create() for the canonical /orders/create endpoint. */
+    public function createLegacy(array $payload): \Commerce\ResponseObject
     {
-        return $this->create($payload);
+        return $this->http->post('/orders/new', $payload);
     }
 
     /**
@@ -140,6 +133,12 @@ class Orders
     public function lookup(string $orderId, array $options = []): \Commerce\ResponseObject
     {
         return $this->http->post('/orders/lookup', array_merge(['order_id' => $orderId], $options));
+    }
+
+    /** Update mutable fields on an existing order (POST /orders/update). */
+    public function update(array $payload): \Commerce\ResponseObject
+    {
+        return $this->http->post('/orders/update', $payload);
     }
 
     /**

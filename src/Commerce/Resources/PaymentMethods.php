@@ -158,6 +158,43 @@ class PaymentMethods
         return $this->http->post('/payment_methods/lookup', ['payment_method_id' => $paymentMethodId]);
     }
 
+    /** Retrieve a paginated list of payment methods. */
+    public function page(array $payload = []): \Commerce\ResponseObject
+    {
+        return $this->http->post('/payment_methods/page', $payload);
+    }
+
+    /** Update mutable payment method metadata and state. */
+    public function update(array $payload): \Commerce\ResponseObject
+    {
+        return $this->http->post('/payment_methods/update', $payload);
+    }
+
+    public function activate(string $paymentMethodId): \Commerce\ResponseObject
+    {
+        return $this->http->post('/payment_methods/activate', ['payment_method_id' => $paymentMethodId]);
+    }
+
+    public function disactivate(string $paymentMethodId): \Commerce\ResponseObject
+    {
+        return $this->http->post('/payment_methods/disactivate', ['payment_method_id' => $paymentMethodId]);
+    }
+
+    public function deactivate(string $paymentMethodId): \Commerce\ResponseObject
+    {
+        return $this->disactivate($paymentMethodId);
+    }
+
+    public function archive(string $paymentMethodId): \Commerce\ResponseObject
+    {
+        return $this->http->post('/payment_methods/archive', ['payment_method_id' => $paymentMethodId]);
+    }
+
+    public function unarchive(string $paymentMethodId): \Commerce\ResponseObject
+    {
+        return $this->http->post('/payment_methods/unarchive', ['payment_method_id' => $paymentMethodId]);
+    }
+
     /**
      * Remove a saved payment method, preventing future charges.
      *

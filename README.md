@@ -295,15 +295,18 @@ $updatedApp = $client->apps->update(['alias' => 'my-app']);
 
 ## Available resources
 
-- `$client->orders->create|lookup|pay|confirmPayment|requestConfirmation|finalize|complete|cancel|refund|page`
-- `$client->paymentMethods->tokenize|verify|confirmVerification|lookup|delete|settings`
-- `$client->payouts->setDestinations|settings|disableAutomatic|enableFx|disableFx|page|cancel`
-- `$client->balanceTransactions->page`
-- `$client->financialAccounts->create|lookup|connect|archive|page|verify|update|enablePush|disablePush|enablePull|disablePull|disconnect`
+- `$client->orders->create|new|lookup|update|pay|confirmPayment|requestConfirmation|finalize|complete|cancel|refund|page`
+- `$client->paymentMethods->tokenize|verify|confirmVerification|lookup|page|update|activate|disactivate|archive|unarchive|delete|settings`
+- `$client->payouts->setDestinations|settings|disableAutomatic|enableAutomatic|enableFx|disableFx|page|schedule|lookup|cancel`
+- `$client->balanceTransactions->lookup|page`
+- `$client->financialAccounts->create|lookup|connect|archive|page|verify|update|enablePush|disablePush|enablePull|disablePull|disconnect|reconnect`
+- `$client->fileReferences->reconcile`
 - `$client->customers->create|lookup|page`
-- `$client->prices->create|lookup|update`
+- `$client->keys->generate|page|lookup|update|destroy|usage`
+- `$client->prices->create|lookup|page|update|activate|deactivate`
 - `$client->products->create|addPrice|setDefaultUnitPrice|lookup|update|publish|unpublish|archive|page`
-- `$client->chimes->send|lookup|schedule|broadcast`
+- `$client->purchaseIntents->create|update|cancel|lookup|page`
+- `$client->chimes->send|lookup|page|schedule|broadcast`
 - `$client->schedules->lookup|cancel`
 - `$client->broadcasts->lookup|cancel`
 - `$client->otp->initiate|verify|lookup|cancel`

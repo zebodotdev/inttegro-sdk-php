@@ -103,6 +103,12 @@ class Payouts
         return $this->http->post('/payouts/disable', []);
     }
 
+    /** Enable automatic payouts. */
+    public function enableAutomatic(): \Commerce\ResponseObject
+    {
+        return $this->http->post('/payouts/enable', []);
+    }
+
     /**
      * Enable foreign exchange conversion for multi-currency payouts.
      *
@@ -178,6 +184,18 @@ class Payouts
     public function page(array $payload = []): \Commerce\ResponseObject
     {
         return $this->http->post('/payouts/page', $payload);
+    }
+
+    /** Schedule a payout to a financial account. */
+    public function schedule(array $payload): \Commerce\ResponseObject
+    {
+        return $this->http->post('/payouts/schedule', $payload);
+    }
+
+    /** Lookup a payout by ID. */
+    public function lookup(string $payoutId): \Commerce\ResponseObject
+    {
+        return $this->http->post('/payouts/lookup', ['payout_id' => $payoutId]);
     }
 
     /**

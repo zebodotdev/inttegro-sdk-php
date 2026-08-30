@@ -22,6 +22,11 @@ class BalanceTransactions
         $this->http = $http;
     }
 
+    public function lookup(string $transactionId): \Commerce\ResponseObject
+    {
+        return $this->http->post('/balance_transactions/lookup', ['transaction_id' => $transactionId]);
+    }
+
     /**
      * Retrieve a paginated list of balance transactions.
      *
