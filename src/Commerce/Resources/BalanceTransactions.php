@@ -5,11 +5,10 @@ namespace Commerce\Resources;
 use Commerce\HttpClient;
 
 /**
- * Balance transactions resource for tracking balance movements and payout eligibility.
+ * Balance transactions resource for payment- and refund-sourced merchant balance entries.
  *
- * Balance transactions record every change to your Commerce balance, including charges,
- * refunds, fees, and payouts. Each transaction shows amounts, currency, source, and aging
- * status for payout eligibility.
+ * Every transaction has type `payment` or `refund`. The type describes its semantic
+ * source, not accounting direction, and exactly one matching payment_id or refund_id.
  *
  * @see https://studio.inttegro.com/balance-transactions for detailed guide
  */
@@ -22,6 +21,10 @@ class BalanceTransactions
         $this->http = $http;
     }
 
+    /**
+     * Retrieve one transaction with required id, type, order_id, amount, and created_at.
+     * When type is payment the response has payment_id; when refund it has refund_id.
+     */
     public function lookup(string $transactionId): \Commerce\ResponseObject
     {
         return $this->http->post('/balance_transactions/lookup', ['transaction_id' => $transactionId]);
@@ -31,8 +34,8 @@ class BalanceTransactions
      * Retrieve a paginated list of balance transactions.
      *
      * Returns transactions sorted by created_at in descending order (most recent first).
-     * Transactions show gross amount, fees, net amount, source (order/refund/payout), and
-     * payout eligibility. Transactions must age 168 hours (7 days) before becoming payout-eligible.
+     * Required transaction fields are id, type, order_id, amount, and created_at. Optional
+     * payout_id, available_at, claimed_at, and paid_at are included when applicable.
      *
      * @param array $payload Pagination parameters (optional)
      *   - page_number: int - 0-based page index (0-10, default: 0)
@@ -47,14 +50,13 @@ class BalanceTransactions
      *     'page_size' => 25
      * ]);
      *
-     * $page = $result->data['page'];
+     * $page = $result->page;
      * echo "Page {$page['number']} contains {$page['size']} transactions\n";
      *
      * foreach ($page['transactions'] as $txn) {
-     *     $net = $txn['net'];
-     *     echo "Transaction {$txn['id']}: {$net['value']} {$net['currency']}\n";
-     *     echo "  Source: {$txn['source']['type']}\n";
-     *     echo "  Payout eligible: " . ($txn['available_for_payout'] ? 'yes' : 'no') . "\n";
+     *     $sourceId = $txn['type'] === 'payment' ? $txn['payment_id'] : $txn['refund_id'];
+     *     echo "Transaction {$txn['id']} ({$txn['type']} {$sourceId}): "
+     *         . "{$txn['amount']['value']} {$txn['amount']['currency']}\n";
      * }
      * ```
      *

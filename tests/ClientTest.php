@@ -12,6 +12,56 @@ final class ClientTest extends TestCase
         '/upload_requests/upload',
     ];
 
+    public function test_balance_transactions_expose_matching_semantic_sources(): void
+    {
+        $adapter = function ($method, $url, $headers, $payload) {
+            unset($method, $headers, $payload);
+            $isLookup = str_ends_with(parse_url($url, PHP_URL_PATH) ?: '', '/lookup');
+            $body = $isLookup
+                ? [
+                    'transaction' => [
+                        'id' => 'bt_payment',
+                        'type' => 'payment',
+                        'payment_id' => 'py_123',
+                        'order_id' => 'or_123',
+                        'amount' => ['currency' => 'GHS', 'value' => 2500],
+                        'created_at' => '2026-08-31T12:00:00Z',
+                    ],
+                ]
+                : [
+                    'page' => [
+                        'number' => 1,
+                        'size' => 1,
+                        'transactions' => [[
+                            'id' => 'bt_refund',
+                            'type' => 'refund',
+                            'refund_id' => 'rf_123',
+                            'order_id' => 'or_123',
+                            'amount' => ['currency' => 'GHS', 'value' => 500],
+                            'created_at' => '2026-08-31T12:01:00Z',
+                        ]],
+                    ],
+                ];
+            return [
+                'status' => 200,
+                'body' => json_encode($body),
+                'headers' => ['content-type' => 'application/json'],
+            ];
+        };
+
+        $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
+        $payment = $client->balanceTransactions->lookup('bt_payment')->transaction;
+        $this->assertSame('payment', $payment->type);
+        $this->assertSame('py_123', $payment->payment_id);
+        $this->assertFalse(isset($payment->refund_id));
+        $this->assertSame(2500, $payment->amount->value);
+
+        $refund = $client->balanceTransactions->page(['page_number' => 1])->page->transactions[0];
+        $this->assertSame('refund', $refund->type);
+        $this->assertSame('rf_123', $refund->refund_id);
+        $this->assertFalse(isset($refund->payment_id));
+    }
+
     public function test_sdk_implementation_paths_cover_openapi_spec(): void
     {
         $missing = array_values(array_diff(
