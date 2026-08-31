@@ -323,3 +323,17 @@ php tests/run.php
 ```
 
 CI and release workflows live in `sdks/php/.github`. Configure your Packagist automation separately when ready to publish.
+
+## API enum values
+
+Backed enums encode to their public wire values:
+
+```php
+use Commerce\Enums\ProductType;
+use Commerce\Enums\RefundReason;
+
+$payload = [
+    'type' => ProductType::Digital,
+    'reason' => RefundReason::RequestedByCustomer,
+];
+```

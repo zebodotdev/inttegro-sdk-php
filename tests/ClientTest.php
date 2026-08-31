@@ -3,6 +3,9 @@
 use PHPUnit\Framework\TestCase;
 use Commerce\Client;
 use Commerce\AuthenticationError;
+use Commerce\Enums\ProductType;
+use Commerce\Enums\RefundReason;
+use Commerce\Enums\UploadRequestStatus;
 
 final class ClientTest extends TestCase
 {
@@ -11,6 +14,13 @@ final class ClientTest extends TestCase
         '/file_links/open',
         '/upload_requests/upload',
     ];
+
+    public function test_api_enums_encode_as_wire_values(): void
+    {
+        $this->assertSame('digital', ProductType::Digital->value);
+        $this->assertSame('requested_by_customer', RefundReason::RequestedByCustomer->value);
+        $this->assertSame('{"status":"pending"}', json_encode(['status' => UploadRequestStatus::Pending]));
+    }
 
     public function test_balance_transactions_expose_matching_semantic_sources(): void
     {

@@ -8,7 +8,8 @@
       "Commerce\\": "src/Commerce/"
     },
     "files": [
-      "src/Commerce/Errors.php"
+      "src/Commerce/Errors.php",
+      "src/Commerce/Enums.php"
     ]
   },
   "require": {
