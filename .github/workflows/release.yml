@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: release
+    env:
+      INTTEGRO_OPENAPI_SPEC: openapi/commerce.yml
     permissions:
       attestations: write
       contents: write
@@ -27,11 +29,20 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Check out the OpenAPI contract
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: zebodotdev/openapi
+          ref: f03582cc9834b2a6c95fac0795e6036e048dd8b7
+          path: openapi
+          persist-credentials: false
+
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: "8.3"
           coverage: none
+          tools: composer:2.10.3
 
       - name: Verify the release tag and runtime version
         shell: bash
