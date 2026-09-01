@@ -3,6 +3,11 @@
   "description": "Official PHP SDK for the Inttegro API",
   "type": "library",
   "license": "MIT",
+  "homepage": "https://studio.inttegro.com",
+  "support": {
+    "issues": "https://github.com/zebodotdev/inttegro-sdk-php/issues",
+    "source": "https://github.com/zebodotdev/inttegro-sdk-php"
+  },
   "autoload": {
     "psr-4": {
       "Inttegro\\": "src/Inttegro/"

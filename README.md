@@ -86,6 +86,16 @@ PHP-specific features:
 
 See the [API reference](https://studio.inttegro.com/api-reference) for request fields and lifecycle rules, [errors](https://studio.inttegro.com/errors) for recovery guidance, and [idempotency](https://studio.inttegro.com/idempotency) for safe retries.
 
+## Verify a release
+
+Packagist versions resolve to immutable Git commit references. The corresponding GitHub release is the canonical record and contains an archive of that exact commit, SHA-256 checksums, and a Sigstore attestation tied to the release workflow.
+
+```bash
+sha256sum --check SHA256SUMS
+gh attestation verify inttegro-sdk-php-1.0.0.tar.gz \
+  --repo zebodotdev/inttegro-sdk-php
+```
+
 ## Develop
 
 ```bash
