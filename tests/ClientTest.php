@@ -235,7 +235,7 @@ final class ClientTest extends TestCase
             'price_id' => 'pr_1',
             'quantity' => ['min' => 1, 'max' => 5],
         ]);
-        $client->purchaseIntents->update(['id' => 'sale_1', 'maximum_quantity' => 3]);
+        $client->purchaseIntents->update(['id' => 'sale_1', 'quantity' => ['min' => 1, 'max' => 3]]);
         $client->purchaseIntents->cancel('sale_1');
         $client->purchaseIntents->lookup('sale_1');
         $client->purchaseIntents->page(['page_number' => 1, 'page_size' => 20]);
