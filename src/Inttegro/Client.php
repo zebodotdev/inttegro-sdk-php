@@ -19,6 +19,7 @@ use Inttegro\Resources\Payouts;
 use Inttegro\Resources\Products;
 use Inttegro\Resources\PurchaseIntents;
 use Inttegro\Resources\Prices;
+use Inttegro\Resources\Refunds;
 use Inttegro\Resources\Schedules;
 use Inttegro\Resources\Spec;
 use Inttegro\Resources\Balances;
@@ -40,6 +41,7 @@ class Client
     public Products $products;
     public PurchaseIntents $purchaseIntents;
     public Prices $prices;
+    public Refunds $refunds;
     public Chimes $chimes;
     public Schedules $schedules;
     public Broadcasts $broadcasts;
@@ -73,6 +75,7 @@ class Client
         $this->products = new Products($this->http);
         $this->purchaseIntents = new PurchaseIntents($this->http);
         $this->prices = new Prices($this->http);
+        $this->refunds = new Refunds($this->http);
         $this->chimes = new Chimes($this->http);
         $this->schedules = new Schedules($this->http);
         $this->broadcasts = new Broadcasts($this->http);

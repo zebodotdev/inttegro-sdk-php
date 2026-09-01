@@ -51,4 +51,11 @@ class Prices
     {
         return $this->http->post('/prices/deactivate', ['price_id' => $priceId]);
     }
+
+    /** Archive a price and mark it inactive (POST /prices/archive). */
+    public function archive(string $priceId, ?string $idempotencyKey = null): \Inttegro\ResponseObject
+    {
+        $headers = $idempotencyKey ? ['Idempotency-Key' => $idempotencyKey] : [];
+        return $this->http->postWithHeaders('/prices/archive', ['price_id' => $priceId], $headers);
+    }
 }

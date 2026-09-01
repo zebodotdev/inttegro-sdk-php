@@ -28,6 +28,13 @@ class Customers
         return $this->http->post('/customers/lookup', ['customer_id' => $customerId]);
     }
 
+    /** Update supplied fields on a customer record (POST /customers/update). */
+    public function update(array $payload, ?string $idempotencyKey = null): \Inttegro\ResponseObject
+    {
+        $headers = $idempotencyKey ? ['Idempotency-Key' => $idempotencyKey] : [];
+        return $this->http->postWithHeaders('/customers/update', $payload, $headers);
+    }
+
     /** Page through customers (POST /customers/page). */
     public function page(array $payload = []): \Inttegro\ResponseObject
     {

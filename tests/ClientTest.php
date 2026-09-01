@@ -180,6 +180,7 @@ final class ClientTest extends TestCase
 
         $client->customers->create(['name' => 'Jane Doe']);
         $client->customers->lookup('cu_1');
+        $client->customers->update(['customer_id' => 'cu_1', 'name' => 'Jane Smith']);
         $client->customers->page(['page_number' => 1]);
 
         $client->products->create(['type' => 'physical', 'name' => 'Product']);
@@ -195,6 +196,26 @@ final class ClientTest extends TestCase
         $client->products->unpublish('prod_1');
         $client->products->archive('prod_1');
         $client->products->page(['page_number' => 1]);
+
+        $client->prices->archive('pr_1');
+
+        $client->refunds->create([
+            'order_id' => 'or_1',
+            'reason' => 'requested_by_customer',
+            'line_items' => [[
+                'order_line_item_id' => 'oli_1',
+                'refund_amount' => ['currency' => 'ghs', 'value' => 100],
+            ]],
+        ]);
+        $client->refunds->cancel('rf_1');
+        $client->refunds->lookup('rf_1');
+        $client->refunds->page(['page_number' => 1]);
+
+        $client->uploadRequests->review([
+            'id' => 'ur_1',
+            'attempt_id' => 'ura_1',
+            'decision' => 'approved',
+        ]);
 
         $client->chimes->send(['message' => 'hi']);
         $client->chimes->lookup('ch_1');
@@ -304,6 +325,7 @@ final class ClientTest extends TestCase
             '/keys/usage',
             '/customers/create',
             '/customers/lookup',
+            '/customers/update',
             '/customers/page',
             '/products/create',
             '/products/add_price',
@@ -314,6 +336,12 @@ final class ClientTest extends TestCase
             '/products/unpublish',
             '/products/archive',
             '/products/page',
+            '/prices/archive',
+            '/refunds/create',
+            '/refunds/cancel',
+            '/refunds/lookup',
+            '/refunds/page',
+            '/upload_requests/review',
             '/chimes/send',
             '/chimes/lookup',
             '/chimes/page',

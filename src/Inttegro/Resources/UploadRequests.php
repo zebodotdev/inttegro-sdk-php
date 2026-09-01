@@ -31,6 +31,11 @@ class UploadRequests
         return $this->http->postWithHeaders('/upload_requests/cancel', $payload, $this->headers($options));
     }
 
+    public function review(array $payload, array $options = []): ResponseObject
+    {
+        return $this->http->postWithHeaders('/upload_requests/review', $payload, $this->headers($options));
+    }
+
     public function fulfill(array $payload): ResponseObject
     {
         return $this->http->postMultipart($payload['upload_url'], [], ['file' => $payload['file']], [], false);
