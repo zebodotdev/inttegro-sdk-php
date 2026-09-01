@@ -1,339 +1,94 @@
-# Zebo Commerce PHP SDK
+# Inttegro PHP SDK
 
-Lightweight PHP client for the Zebo Commerce API. Covers orders, payments, payouts, OTP, payment methods, chimes, balance transactions, financial accounts, apps, and specs.
+The official PHP client for building server-side Inttegro integrations.
 
-## Installation
+> **Fastest, most modern path:** connect an agent to [Inttegro MCP](https://studio.inttegro.com/inttegro-mcp) at `https://mcp.inttegro.com`, then ask it to run `design_integration`. It will produce an implementation and test plan for your application. Use this SDK when you are ready to connect that plan to your PHP service.
+
+All official Inttegro SDKs expose the same API capabilities. This package adds PHP-specific response access and enum support.
+
+## Install
+
+Requires PHP 8.1 or newer.
 
 ```bash
-composer require zebo/commerce-sdk
+composer require inttegro/sdk
 ```
 
-For local development in this repo:
+Store your secret key in the server environment:
 
 ```bash
-composer install --no-dev
+export INTTEGRO_API_KEY="your_secret_key"
 ```
 
-## Quick start
+Never put the key in browser code, a mobile app, or source control. The client uses `https://api.inttegro.com` by default.
+
+## Create a hosted checkout
+
+Create and finalize an order, then send the customer to its hosted invoice URL:
 
 ```php
-require __DIR__ . '/src/autoload.php';
+<?php
 
-use Commerce\Client;
+require __DIR__ . '/vendor/autoload.php';
 
-$client = new Client(getenv('COMMERCE_API_KEY'));
+use Inttegro\APIError;
+use Inttegro\Client;
+use Inttegro\Enums\ProductType;
 
-$order = $client->orders->create([
-    'customer_data' => [
-        'name' => 'Akua Mensah',
-        'phone_number' => '+233544998605',
-    ],
-    'payout_settings' => [
-        'destination' => [
-            'financial_account_id' => 'fa_1234567890abcdef',
+$inttegro = new Client(getenv('INTTEGRO_API_KEY'));
+
+try {
+    $result = $inttegro->orders->create([
+        'request_meta' => ['idempotency_key' => 'checkout-cart-123'],
+        'customer_data' => [
+            'name' => 'Akua Mensah',
+            'email_address' => 'akua@example.com',
+            'phone_number' => '+233544998605',
         ],
-        'enable_fx' => false,
-    ],
-    'payment_method_data' => [
-        'type' => 'mobile_money',
-        'mobile_money' => [
-            'issuer' => 'mtn',
-            'number' => '0544998605',
+        'finalize' => true,
+        'checkout_settings' => [
+            'redirect_url' => 'https://example.com/orders/complete',
+            'cancel_url' => 'https://example.com/cart',
         ],
-    ],
-    'line_items' => [[
-        'type' => 'product',
-        'product' => [
-            'name' => 'Monthly Subscription',
-            'price' => ['currency' => 'ghs', 'value' => 5000],
-            'quantity' => 1,
-        ],
-    ]],
-]);
-
-echo $order['order']['id'] . PHP_EOL;
-```
-
-Responses are wrapped so you can use either property or array access (`$order->order->id` or `$order['order']->id`).
-
-## Examples
-
-### Create an order with payment
-
-```php
-$order = $client->orders->create([
-    'idempotency_key' => 'order_checkout_abc123_' . time(),
-    'customer_data' => ['name' => 'Customer', 'phone_number' => '+233200000000'],
-    'payout_settings' => [
-        'destination' => [
-            'financial_account_id' => 'fa_1234567890abcdef',
-        ],
-        'enable_fx' => false,
-    ],
-    'payment_method_data' => [
-        'type' => 'mobile_money',
-        'mobile_money' => ['issuer' => 'mtn', 'number' => '0544998605'],
-    ],
-    'line_items' => [[
-        'type' => 'product',
-        'product' => [
-            'name' => 'Utility Sneakers',
-            'quantity' => 1,
-            'price' => ['currency' => 'ghs', 'value' => 20000],
-        ],
-    ]],
-    'execute_payment' => true,
-]);
-
-echo $order['order']['id'];
-```
-
-### Hosted checkout (orders->new shortcut)
-
-```php
-$result = $client->orders->new([
-    'finalize' => true,
-    'customer_data' => ['name' => 'Jane Doe'],
-    'line_items' => [
-        [
+        'line_items' => [[
             'type' => 'product',
             'product' => [
-                'name' => 'Subscription',
+                'type' => ProductType::Digital,
+                'name' => 'Monthly subscription',
                 'quantity' => 1,
                 'price' => ['currency' => 'ghs', 'value' => 5000],
             ],
-        ],
-    ],
-]);
+        ]],
+    ]);
 
-// Redirect to $result->order->invoice->format->web->url
-```
-
-### Handle errors
-
-```php
-use Commerce\AuthenticationError;
-use Commerce\RateLimitError;
-use Commerce\APIError;
-
-try {
-    $client->orders->lookup('or_missing');
-} catch (AuthenticationError $e) {
-    error_log('Check API key: ' . $e->getMessage());
-} catch (RateLimitError $e) {
-    error_log('Retry after ' . $e->retryAfter . 's');
-} catch (APIError $e) {
-    error_log('API error ' . $e->status . ': ' . $e->getMessage());
+    $checkoutUrl = $result->order->invoice->format->web->url
+        ?? throw new RuntimeException('Order did not include a checkout URL');
+    echo $result->order->id . ' ' . $checkoutUrl . PHP_EOL;
+} catch (APIError $error) {
+    error_log(($error->code ?? 'api_error') . ': ' . ($error->detail ?? $error->getMessage()));
+    throw $error;
 }
 ```
 
-### Tokenize and charge a saved payment method
+Amounts use integer minor units: `5000` GHS is GHS 50.00. Reuse the same idempotency key when retrying the same logical write. If you omit one, the SDK generates a UUIDv7 key for mutating calls.
 
-```php
-$pm = $client->paymentMethods->tokenize([
-    'type' => 'mobile_money',
-    'mobile_money' => ['issuer' => 'mtn', 'number' => '0544998605'],
-]);
+## Work with the API
 
-$client->paymentMethods->verify($pm['payment_method']['id']);
+The SDK covers orders and checkout, customers, products and prices, purchase intents, payment methods, balances, payouts and refunds, notifications, files, application settings, keys, and country specifications. Resources use camel-case properties such as `purchaseIntents` and `paymentMethods`.
 
-$payment = $client->orders->pay([
-    'order_id' => 'or_123',
-    'payment_method_id' => $pm['payment_method']['id'],
-]);
+PHP-specific features:
 
-if (!empty($payment['requires_confirmation'])) {
-    $client->orders->confirmPayment(['order_id' => $payment['order_id'], 'token' => '123456']);
-}
-```
+- Native array request payloads and backed enums for public API values.
+- Response objects with both property and `ArrayAccess` syntax, plus `toArray()` and JSON serialization.
+- No production Composer dependencies beyond PHP itself; HTTP uses cURL.
+- Configurable timeout, base URL, and injectable adapter for tests.
+- Structured authentication, rate-limit, network, timeout, and API exceptions.
 
-### OTP flows
+See the [API reference](https://studio.inttegro.com/api-reference) for request fields and lifecycle rules, [errors](https://studio.inttegro.com/errors) for recovery guidance, and [idempotency](https://studio.inttegro.com/idempotency) for safe retries.
 
-```php
-$txn = $client->otp->initiate([
-    'recipient' => '+233241234567',
-    'idempotency_key' => 'otp_login_' . time(),
-    'sender' => 'Acme',
-    'service_name' => 'Acme Bank',
-    'purpose' => 'login',
-]);
-
-$verification = $client->otp->verify([
-    'transaction_id' => $txn['transaction_id'] ?? $txn['transaction']['id'] ?? null,
-    'recipient' => '+233241234567',
-    'token' => '123456',
-]);
-
-// Lookup or cancel as shown in Studio samples
-$client->otp->lookup([
-    'transaction_id' => $txn['transaction_id'] ?? $txn['transaction']['id'] ?? null,
-]);
-$client->otp->cancel([
-    'transaction_id' => $txn['transaction_id'] ?? $txn['transaction']['id'] ?? null,
-    'reason' => 'user_requested_new_code',
-]);
-```
-
-### Payout settings
-
-```php
-$settings = $client->payouts->setDestinations([
-    'ghs' => 'momo:0544998605',
-    'usd' => 'fa_bank_account',
-]);
-```
-
-### Financial accounts
-
-```php
-$account = $client->financialAccounts->connect([
-    'label' => 'Primary GHS Bank Account',
-    'type' => 'bank_account',
-    'reference' => 'BANK-GHS-001',
-    'currency' => 'ghs',
-    'owner' => [
-        'name' => 'Jane Smith',
-        'address' => [
-            'name' => 'Business Address',
-            'line_1' => '456 Business Road',
-            'city' => 'Accra',
-            'region' => 'Greater Accra',
-            'country' => 'Ghana',
-        ],
-    ],
-    'custom_data' => ['merchant_id' => 'merch_123'],
-    'pull_configuration' => ['enabled' => true, 'mandate' => []],
-    'bank_account' => [
-        'type' => 'ghana_bank_account',
-        'ghana_bank_account' => [
-            'number' => '1234567890',
-            'sort_code' => '040127',
-            'holder' => [
-                'name' => 'Jane Smith',
-                'address' => [
-                    'name' => 'Business Address',
-                    'line_1' => '456 Business Road',
-                    'city' => 'Accra',
-                    'region' => 'Greater Accra',
-                    'country' => 'Ghana',
-                ],
-            ],
-        ],
-    ],
-]);
-
-$client->financialAccounts->disablePush([
-    'account_id' => 'fa_1234567890abcdef',
-    'unset_as_payout_destination' => true,
-]);
-
-$client->financialAccounts->disconnect([
-    'account_id' => 'fa_1234567890abcdef',
-    'unset_as_payout_destination' => true,
-]);
-
-$client->financialAccounts->page([
-    'page_number' => 1,
-    'page_size' => 50,
-]);
-```
-
-### Customers
-
-```php
-$customer = $client->customers->create([
-    'name' => 'Jane Doe',
-    'email_address' => 'jane@example.com',
-    'phone_number' => '+233501234567',
-]);
-
-$existing = $client->customers->lookup('cu_1234567890abcdef');
-$page = $client->customers->page(['page_number' => 1, 'page_size' => 50]);
-```
-
-### Products
-
-```php
-$product = $client->products->create([
-    'type' => 'physical',
-    'name' => 'Premium Cotton T-Shirt',
-]);
-
-$client->products->addPrice([
-    'product_id' => $product['product']['id'],
-    'amount' => ['currency' => 'ghs', 'value' => 5000],
-    'set_as_default' => true,
-]);
-
-$productsPage = $client->products->page(['page_number' => 1, 'page_size' => 50]);
-
-$client->products->publish($product['product']['id']);
-```
-
-### Prices
-
-```php
-$price = $client->prices->create([
-    'currency' => 'USD',
-    'amount' => 1999,
-    'label' => 'Standard pricing',
-]);
-
-$client->prices->update([
-    'price_id' => $price['price']['id'],
-    'label' => 'Premium pricing',
-]);
-```
-
-### Apps
-
-```php
-$app = $client->apps->create(['name' => 'My App']);
-$currentApp = $client->apps->lookup();
-$updatedApp = $client->apps->update(['alias' => 'my-app']);
-```
-
-## Available resources
-
-- `$client->orders->create|new|lookup|update|pay|confirmPayment|requestConfirmation|finalize|complete|cancel|refund|page`
-- `$client->paymentMethods->tokenize|verify|confirmVerification|lookup|page|update|activate|disactivate|archive|unarchive|delete|settings`
-- `$client->payouts->setDestinations|settings|disableAutomatic|enableAutomatic|enableFx|disableFx|page|schedule|lookup|cancel`
-- `$client->balanceTransactions->lookup|page`
-- `$client->financialAccounts->create|lookup|connect|archive|page|verify|update|enablePush|disablePush|enablePull|disablePull|disconnect|reconnect`
-- `$client->fileReferences->reconcile`
-- `$client->customers->create|lookup|page`
-- `$client->keys->generate|page|lookup|update|destroy|usage`
-- `$client->prices->create|lookup|page|update|activate|deactivate`
-- `$client->products->create|addPrice|setDefaultUnitPrice|lookup|update|publish|unpublish|archive|page`
-- `$client->purchaseIntents->create|update|cancel|lookup|page`
-- `$client->chimes->send|lookup|page|schedule|broadcast`
-- `$client->schedules->lookup|cancel`
-- `$client->broadcasts->lookup|cancel`
-- `$client->otp->initiate|verify|lookup|cancel`
-- `$client->balances->get`
-- `$client->apps->create|lookup|update`
-- `$client->spec->countries`
-
-## Development
-
-From `sdks/php`:
+## Develop
 
 ```bash
+composer install
 php tests/run.php
-```
-
-CI and release workflows live in `sdks/php/.github`. Configure your Packagist automation separately when ready to publish.
-
-## API enum values
-
-Backed enums encode to their public wire values:
-
-```php
-use Commerce\Enums\ProductType;
-use Commerce\Enums\RefundReason;
-
-$payload = [
-    'type' => ProductType::Digital,
-    'reason' => RefundReason::RequestedByCustomer,
-];
 ```

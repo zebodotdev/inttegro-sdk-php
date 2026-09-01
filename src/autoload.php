@@ -1,8 +1,8 @@
 <?php
 
 spl_autoload_register(function ($class) {
-    $prefix = 'Commerce\\';
-    $baseDir = __DIR__ . '/Commerce/';
+    $prefix = 'Inttegro\\';
+    $baseDir = __DIR__ . '/Inttegro/';
 
     if (strncmp($prefix, $class, strlen($prefix)) !== 0) {
         return;
@@ -16,5 +16,5 @@ spl_autoload_register(function ($class) {
     }
 });
 
-require_once __DIR__ . '/Commerce/Errors.php';
-require_once __DIR__ . '/Commerce/Enums.php';
+require_once __DIR__ . '/Inttegro/Errors.php';
+require_once __DIR__ . '/Inttegro/Enums.php';

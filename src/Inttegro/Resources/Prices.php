@@ -1,8 +1,8 @@
 <?php
 
-namespace Commerce\Resources;
+namespace Inttegro\Resources;
 
-use Commerce\HttpClient;
+use Inttegro\HttpClient;
 
 /**
  * Prices resource for managing catalog prices.
@@ -17,37 +17,37 @@ class Prices
     }
 
     /** Create a price (POST /prices/create). */
-    public function create(array $payload): \Commerce\ResponseObject
+    public function create(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/prices/create', $payload);
     }
 
     /** Lookup a price by ID (POST /prices/lookup). */
-    public function lookup(string $priceId): \Commerce\ResponseObject
+    public function lookup(string $priceId): \Inttegro\ResponseObject
     {
         return $this->http->post('/prices/lookup', ['price_id' => $priceId]);
     }
 
     /** Page through prices (POST /prices/page). */
-    public function page(array $payload = []): \Commerce\ResponseObject
+    public function page(array $payload = []): \Inttegro\ResponseObject
     {
         return $this->http->post('/prices/page', $payload);
     }
 
     /** Update a price (POST /prices/update). */
-    public function update(array $payload): \Commerce\ResponseObject
+    public function update(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/prices/update', $payload);
     }
 
     /** Activate a price (POST /prices/activate). */
-    public function activate(string $priceId): \Commerce\ResponseObject
+    public function activate(string $priceId): \Inttegro\ResponseObject
     {
         return $this->http->post('/prices/activate', ['price_id' => $priceId]);
     }
 
     /** Deactivate a price (POST /prices/deactivate). */
-    public function deactivate(string $priceId): \Commerce\ResponseObject
+    public function deactivate(string $priceId): \Inttegro\ResponseObject
     {
         return $this->http->post('/prices/deactivate', ['price_id' => $priceId]);
     }

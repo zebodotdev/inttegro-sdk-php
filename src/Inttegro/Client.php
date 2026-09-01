@@ -1,29 +1,29 @@
 <?php
 
-namespace Commerce;
+namespace Inttegro;
 
-use Commerce\Resources\BalanceTransactions;
-use Commerce\Resources\Broadcasts;
-use Commerce\Resources\MessageTemplates;
-use Commerce\Resources\Chimes;
-use Commerce\Resources\Customers;
-use Commerce\Resources\FinancialAccounts;
-use Commerce\Resources\FileReferences;
-use Commerce\Resources\Files;
-use Commerce\Resources\FileLinks;
-use Commerce\Resources\Keys;
-use Commerce\Resources\Orders;
-use Commerce\Resources\Otp;
-use Commerce\Resources\PaymentMethods;
-use Commerce\Resources\Payouts;
-use Commerce\Resources\Products;
-use Commerce\Resources\PurchaseIntents;
-use Commerce\Resources\Prices;
-use Commerce\Resources\Schedules;
-use Commerce\Resources\Spec;
-use Commerce\Resources\Balances;
-use Commerce\Resources\UploadRequests;
-use Commerce\Resources\Apps;
+use Inttegro\Resources\BalanceTransactions;
+use Inttegro\Resources\Broadcasts;
+use Inttegro\Resources\MessageTemplates;
+use Inttegro\Resources\Chimes;
+use Inttegro\Resources\Customers;
+use Inttegro\Resources\FinancialAccounts;
+use Inttegro\Resources\FileReferences;
+use Inttegro\Resources\Files;
+use Inttegro\Resources\FileLinks;
+use Inttegro\Resources\Keys;
+use Inttegro\Resources\Orders;
+use Inttegro\Resources\Otp;
+use Inttegro\Resources\PaymentMethods;
+use Inttegro\Resources\Payouts;
+use Inttegro\Resources\Products;
+use Inttegro\Resources\PurchaseIntents;
+use Inttegro\Resources\Prices;
+use Inttegro\Resources\Schedules;
+use Inttegro\Resources\Spec;
+use Inttegro\Resources\Balances;
+use Inttegro\Resources\UploadRequests;
+use Inttegro\Resources\Apps;
 
 class Client
 {

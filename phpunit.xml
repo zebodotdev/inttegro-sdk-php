@@ -3,7 +3,7 @@
          colors="true"
          cacheDirectory=".phpunit.cache">
   <testsuites>
-    <testsuite name="Commerce SDK">
+    <testsuite name="Inttegro SDK">
       <directory>tests</directory>
     </testsuite>
   </testsuites>

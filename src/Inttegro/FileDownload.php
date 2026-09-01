@@ -1,6 +1,6 @@
 <?php
 
-namespace Commerce;
+namespace Inttegro;
 
 class FileDownload
 {

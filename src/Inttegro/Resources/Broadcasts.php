@@ -1,8 +1,8 @@
 <?php
 
-namespace Commerce\Resources;
+namespace Inttegro\Resources;
 
-use Commerce\HttpClient;
+use Inttegro\HttpClient;
 
 /**
  * Broadcasts resource for looking up and canceling broadcasts.
@@ -19,7 +19,7 @@ class Broadcasts
     /**
      * Lookup a broadcast by broadcast ID.
      */
-    public function lookup(string $broadcastId): \Commerce\ResponseObject
+    public function lookup(string $broadcastId): \Inttegro\ResponseObject
     {
         return $this->http->post('/broadcasts/lookup', ['broadcast_id' => $broadcastId]);
     }
@@ -27,7 +27,7 @@ class Broadcasts
     /**
      * Cancel a broadcast by broadcast ID.
      */
-    public function cancel(string $broadcastId): \Commerce\ResponseObject
+    public function cancel(string $broadcastId): \Inttegro\ResponseObject
     {
         return $this->http->post('/broadcasts/cancel', ['broadcast_id' => $broadcastId]);
     }

@@ -1,8 +1,8 @@
 <?php
 
-namespace Commerce\Resources;
+namespace Inttegro\Resources;
 
-use Commerce\HttpClient;
+use Inttegro\HttpClient;
 
 /**
  * Payment methods resource for saving and verifying customer payment instruments.
@@ -34,7 +34,7 @@ class PaymentMethods
      *   - payment_method_data: array - Payment details to tokenize (required)
      *   - verify_immediately: bool - Send verification OTP right after tokenization (default: false)
      *
-     * @return \Commerce\ResponseObject Tokenized payment method
+     * @return \Inttegro\ResponseObject Tokenized payment method
      *
      * @example Tokenize mobile money wallet
      * ```php
@@ -57,7 +57,7 @@ class PaymentMethods
      *
      * @see https://studio.inttegro.com/charge-repeat-customers for saved payment method guide
      */
-    public function tokenize(array $payload): \Commerce\ResponseObject
+    public function tokenize(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/payment_methods/tokenize', $payload);
     }
@@ -72,7 +72,7 @@ class PaymentMethods
      * @param string $paymentMethodId Unique identifier of the payment method to verify (required)
      * @param array $requestMeta Request controls such as idempotency_key (optional)
      *
-     * @return \Commerce\ResponseObject Payment method with verification status
+     * @return \Inttegro\ResponseObject Payment method with verification status
      *
      * @example Start payment method verification
      * ```php
@@ -88,7 +88,7 @@ class PaymentMethods
      *
      * @see https://studio.inttegro.com/charge-repeat-customers for verification flow
      */
-    public function verify(string $paymentMethodId, array $requestMeta = []): \Commerce\ResponseObject
+    public function verify(string $paymentMethodId, array $requestMeta = []): \Inttegro\ResponseObject
     {
         return $this->http->post('/payment_methods/verify', [
             'payment_method_id' => $paymentMethodId,
@@ -106,7 +106,7 @@ class PaymentMethods
      *   - payment_method_id: string - Payment method being verified (required)
      *   - token: string - OTP code provided by customer (required, typically 6 digits)
      *
-     * @return \Commerce\ResponseObject Verified payment method
+     * @return \Inttegro\ResponseObject Verified payment method
      *
      * @example Confirm verification with OTP
      * ```php
@@ -123,7 +123,7 @@ class PaymentMethods
      *
      * @see https://studio.inttegro.com/charge-repeat-customers for verification guide
      */
-    public function confirmVerification(array $payload): \Commerce\ResponseObject
+    public function confirmVerification(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/payment_methods/confirm_verification', $payload);
     }
@@ -137,7 +137,7 @@ class PaymentMethods
      *
      * @param string $paymentMethodId Unique identifier of the payment method to retrieve (required)
      *
-     * @return \Commerce\ResponseObject Complete payment method object
+     * @return \Inttegro\ResponseObject Complete payment method object
      *
      * @example Lookup a payment method
      * ```php
@@ -153,44 +153,44 @@ class PaymentMethods
      *
      * @see https://studio.inttegro.com/payment-methods for payment method overview
      */
-    public function lookup(string $paymentMethodId): \Commerce\ResponseObject
+    public function lookup(string $paymentMethodId): \Inttegro\ResponseObject
     {
         return $this->http->post('/payment_methods/lookup', ['payment_method_id' => $paymentMethodId]);
     }
 
     /** Retrieve a paginated list of payment methods. */
-    public function page(array $payload = []): \Commerce\ResponseObject
+    public function page(array $payload = []): \Inttegro\ResponseObject
     {
         return $this->http->post('/payment_methods/page', $payload);
     }
 
     /** Update mutable payment method metadata and state. */
-    public function update(array $payload): \Commerce\ResponseObject
+    public function update(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/payment_methods/update', $payload);
     }
 
-    public function activate(string $paymentMethodId): \Commerce\ResponseObject
+    public function activate(string $paymentMethodId): \Inttegro\ResponseObject
     {
         return $this->http->post('/payment_methods/activate', ['payment_method_id' => $paymentMethodId]);
     }
 
-    public function disactivate(string $paymentMethodId): \Commerce\ResponseObject
+    public function disactivate(string $paymentMethodId): \Inttegro\ResponseObject
     {
         return $this->http->post('/payment_methods/disactivate', ['payment_method_id' => $paymentMethodId]);
     }
 
-    public function deactivate(string $paymentMethodId): \Commerce\ResponseObject
+    public function deactivate(string $paymentMethodId): \Inttegro\ResponseObject
     {
         return $this->disactivate($paymentMethodId);
     }
 
-    public function archive(string $paymentMethodId): \Commerce\ResponseObject
+    public function archive(string $paymentMethodId): \Inttegro\ResponseObject
     {
         return $this->http->post('/payment_methods/archive', ['payment_method_id' => $paymentMethodId]);
     }
 
-    public function unarchive(string $paymentMethodId): \Commerce\ResponseObject
+    public function unarchive(string $paymentMethodId): \Inttegro\ResponseObject
     {
         return $this->http->post('/payment_methods/unarchive', ['payment_method_id' => $paymentMethodId]);
     }
@@ -205,7 +205,7 @@ class PaymentMethods
      * @param string $paymentMethodId Unique identifier of the payment method to delete (required)
      * @param array $requestMeta Request controls such as idempotency_key (optional)
      *
-     * @return \Commerce\ResponseObject Confirmation of deletion
+     * @return \Inttegro\ResponseObject Confirmation of deletion
      *
      * @example Delete a payment method
      * ```php
@@ -218,7 +218,7 @@ class PaymentMethods
      *
      * @see https://studio.inttegro.com/payment-methods for payment method management
      */
-    public function delete(string $paymentMethodId, array $requestMeta = []): \Commerce\ResponseObject
+    public function delete(string $paymentMethodId, array $requestMeta = []): \Inttegro\ResponseObject
     {
         return $this->http->post('/payment_methods/delete', [
             'payment_method_id' => $paymentMethodId,
@@ -232,7 +232,7 @@ class PaymentMethods
      * Returns the current payment method settings for your application, including supported
      * payment types, verification requirements, and other configuration details.
      *
-     * @return \Commerce\ResponseObject Payment method settings
+     * @return \Inttegro\ResponseObject Payment method settings
      *
      * @example Get payment method settings
      * ```php
@@ -244,7 +244,7 @@ class PaymentMethods
      *
      * @see https://studio.inttegro.com/payment-methods for payment method overview
      */
-    public function settings(): \Commerce\ResponseObject
+    public function settings(): \Inttegro\ResponseObject
     {
         return $this->http->post('/payment_methods/settings', []);
     }

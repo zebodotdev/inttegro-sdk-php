@@ -1,9 +1,9 @@
 <?php
 
-namespace Commerce\Resources;
+namespace Inttegro\Resources;
 
-use Commerce\HttpClient;
-use Commerce\ResponseObject;
+use Inttegro\HttpClient;
+use Inttegro\ResponseObject;
 
 class MessageTemplates
 {

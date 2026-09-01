@@ -1,11 +1,11 @@
 <?php
 
-namespace Commerce\Resources;
+namespace Inttegro\Resources;
 
-use Commerce\HttpClient;
+use Inttegro\HttpClient;
 
 /**
- * Spec resource for retrieving Commerce platform specifications.
+ * Spec resource for retrieving Inttegro platform specifications.
  *
  * Specifications provide details about supported countries, currencies, payment methods,
  * and other platform capabilities. Use specs to build dynamic forms, validate inputs,
@@ -25,7 +25,7 @@ class Spec
     /**
      * Retrieve specifications for all supported countries.
      *
-     * Returns detailed information about each country Commerce operates in, including:
+     * Returns detailed information about each country Inttegro operates in, including:
      * - Supported currencies and payment methods
      * - Available payout schedules
      * - Legal entity types for businesses
@@ -37,7 +37,7 @@ class Spec
      *
      * This is a public endpoint that does not require authentication.
      *
-     * @return \Commerce\ResponseObject Country specifications
+     * @return \Inttegro\ResponseObject Country specifications
      *
      * @example Get country specifications
      * ```php
@@ -57,7 +57,7 @@ class Spec
      *
      * @see https://studio.inttegro.com/country-specifications for spec details
      */
-    public function countries(): \Commerce\ResponseObject
+    public function countries(): \Inttegro\ResponseObject
     {
         return $this->http->post('/spec/countries', []);
     }

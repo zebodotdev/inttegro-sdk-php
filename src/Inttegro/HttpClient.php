@@ -1,8 +1,8 @@
 <?php
 
-namespace Commerce;
+namespace Inttegro;
 
-use Commerce\ResponseObject;
+use Inttegro\ResponseObject;
 
 class HttpClient
 {
@@ -22,7 +22,7 @@ class HttpClient
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->timeout = $timeout;
         $this->adapter = $adapter;
-        $this->userAgent = 'zebo-commerce-sdk-php/' . Version::VERSION;
+        $this->userAgent = 'inttegro-sdk-php/' . Version::VERSION;
     }
 
     public function get(string $path, array $query = []): ResponseObject

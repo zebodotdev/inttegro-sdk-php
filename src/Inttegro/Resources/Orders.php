@@ -1,13 +1,13 @@
 <?php
 
-namespace Commerce\Resources;
+namespace Inttegro\Resources;
 
-use Commerce\HttpClient;
+use Inttegro\HttpClient;
 
 /**
  * Orders resource for creating orders, processing payments, and managing order lifecycle.
  *
- * Orders are the central transaction object in Commerce. They represent a purchase with
+ * Orders are the central transaction object in Inttegro. They represent a purchase with
  * line items, customer information, and payment details. Use this resource to create
  * orders, charge customers, handle confirmations, and process refunds.
  *
@@ -46,7 +46,7 @@ class Orders
      *   - statement_descriptor_prefix: string - Static prefix, 2-10 characters, used to build prefix*order_id; mutually exclusive with statement_descriptor
      *   - finalize: bool - Whether to explicitly finalize order (default: false)
      *
-     * @return \Commerce\ResponseObject Response containing the created order
+     * @return \Inttegro\ResponseObject Response containing the created order
      *
      * @example Create order with new customer and execute payment
      * ```php
@@ -93,13 +93,13 @@ class Orders
      * @see https://studio.inttegro.com/accept-a-payment for payment flow guide
      * @see https://studio.inttegro.com/order-lifecycle for order states
      */
-    public function create(array $payload): \Commerce\ResponseObject
+    public function create(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/create', $payload);
     }
 
     /** Compatibility route for POST /orders/new. Prefer create() for the canonical /orders/create endpoint. */
-    public function createLegacy(array $payload): \Commerce\ResponseObject
+    public function createLegacy(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/new', $payload);
     }
@@ -113,7 +113,7 @@ class Orders
      * @param string $orderId Unique identifier of the order to retrieve (required)
      * @param array $options Additional options (currently unused)
      *
-     * @return \Commerce\ResponseObject Response containing the complete order object
+     * @return \Inttegro\ResponseObject Response containing the complete order object
      *
      * @example Lookup an order
      * ```php
@@ -130,13 +130,13 @@ class Orders
      *
      * @see https://studio.inttegro.com/orders for API reference
      */
-    public function lookup(string $orderId, array $options = []): \Commerce\ResponseObject
+    public function lookup(string $orderId, array $options = []): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/lookup', array_merge(['order_id' => $orderId], $options));
     }
 
     /** Update mutable fields on an existing order (POST /orders/update). */
-    public function update(array $payload): \Commerce\ResponseObject
+    public function update(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/update', $payload);
     }
@@ -155,9 +155,9 @@ class Orders
      *   - order_id: string - Unique identifier of the order to pay (required)
      *   - payment_method_data: array - Inline payment method details (mobile money, card, etc.)
      *   - payment_method_id: string - ID of a saved payment method to use
-     *   - paid_out_of_band: bool - Set to true if payment received outside Commerce (default: false)
+     *   - paid_out_of_band: bool - Set to true if payment received outside Inttegro (default: false)
      *
-     * @return \Commerce\ResponseObject Payment response with order and payment state
+     * @return \Inttegro\ResponseObject Payment response with order and payment state
      *
      * @example Pay with inline mobile money
      * ```php
@@ -173,7 +173,7 @@ class Orders
      * ]);
      *
      * $order = $result->data['order'];
-     * if (isset($order['payment']['next_action']) && 
+     * if (isset($order['payment']['next_action']) &&
      *     $order['payment']['next_action']['type'] === 'confirm_payment') {
      *     echo "Customer needs to provide OTP sent to their phone\n";
      * }
@@ -190,7 +190,7 @@ class Orders
      * @see https://studio.inttegro.com/accept-a-payment for payment flow guide
      * @see https://studio.inttegro.com/charge-repeat-customers for saved payment methods
      */
-    public function pay(array $payload): \Commerce\ResponseObject
+    public function pay(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/pay', $payload);
     }
@@ -205,7 +205,7 @@ class Orders
      *   - order_id: string - Unique identifier of the order being paid (required)
      *   - token: string - Verification token provided by customer (required, typically 6 digits)
      *
-     * @return \Commerce\ResponseObject Updated order with payment status
+     * @return \Inttegro\ResponseObject Updated order with payment status
      *
      * @example Confirm payment with OTP
      * ```php
@@ -222,7 +222,7 @@ class Orders
      *
      * @see https://studio.inttegro.com/accept-a-payment for complete payment flow
      */
-    public function confirmPayment(array $payload): \Commerce\ResponseObject
+    public function confirmPayment(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/confirm_payment', $payload);
     }
@@ -236,7 +236,7 @@ class Orders
      * @param string $orderId Unique identifier of the order requiring confirmation (required)
      * @param array $requestMeta Request controls such as idempotency_key (optional)
      *
-     * @return \Commerce\ResponseObject Response indicating token was resent
+     * @return \Inttegro\ResponseObject Response indicating token was resent
      *
      * @example Resend OTP to customer
      * ```php
@@ -249,7 +249,7 @@ class Orders
      *
      * @see https://studio.inttegro.com/accept-a-payment for payment confirmation flow
      */
-    public function requestConfirmation(string $orderId, array $requestMeta = []): \Commerce\ResponseObject
+    public function requestConfirmation(string $orderId, array $requestMeta = []): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/request_confirmation', [
             'order_id' => $orderId,
@@ -266,7 +266,7 @@ class Orders
      * @param string $orderId Unique identifier of the order to finalize (required)
      * @param array $requestMeta Request controls such as idempotency_key (optional)
      *
-     * @return \Commerce\ResponseObject Finalized order object
+     * @return \Inttegro\ResponseObject Finalized order object
      *
      * @example Finalize an order
      * ```php
@@ -280,7 +280,7 @@ class Orders
      *
      * @see https://studio.inttegro.com/order-lifecycle for order states
      */
-    public function finalize(string $orderId, array $requestMeta = []): \Commerce\ResponseObject
+    public function finalize(string $orderId, array $requestMeta = []): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/finalize', [
             'order_id' => $orderId,
@@ -294,9 +294,9 @@ class Orders
      * @param array $payload Send invoice parameters
      *   - order_id: string - Unique identifier of the order whose invoice should be sent (required)
      *
-     * @return \Commerce\ResponseObject Order and delivery details
+     * @return \Inttegro\ResponseObject Order and delivery details
      */
-    public function sendInvoice(array $payload): \Commerce\ResponseObject
+    public function sendInvoice(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/send_invoice', $payload);
     }
@@ -307,9 +307,9 @@ class Orders
      * @param array $payload Send receipt parameters
      *   - order_id: string - Unique identifier of the paid order whose receipt should be sent (required)
      *
-     * @return \Commerce\ResponseObject Order and delivery details
+     * @return \Inttegro\ResponseObject Order and delivery details
      */
-    public function sendReceipt(array $payload): \Commerce\ResponseObject
+    public function sendReceipt(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/send_receipt', $payload);
     }
@@ -323,9 +323,9 @@ class Orders
      *
      * @param array $payload Completion parameters
      *   - order_id: string - Unique identifier of the order to complete (required)
-     *   - paid_out_of_band: bool - Set to true if payment received outside Commerce (default: false)
+     *   - paid_out_of_band: bool - Set to true if payment received outside Inttegro (default: false)
      *
-     * @return \Commerce\ResponseObject Completed order object
+     * @return \Inttegro\ResponseObject Completed order object
      *
      * @example Complete order after fulfillment
      * ```php
@@ -339,7 +339,7 @@ class Orders
      *
      * @see https://studio.inttegro.com/order-lifecycle for order states
      */
-    public function complete(array $payload): \Commerce\ResponseObject
+    public function complete(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/complete', $payload);
     }
@@ -353,7 +353,7 @@ class Orders
      * @param string $orderId Unique identifier of the order to cancel (required)
      * @param array $requestMeta Request controls such as idempotency_key (optional)
      *
-     * @return \Commerce\ResponseObject Cancelled order object
+     * @return \Inttegro\ResponseObject Cancelled order object
      *
      * @example Cancel an order
      * ```php
@@ -367,7 +367,7 @@ class Orders
      *
      * @see https://studio.inttegro.com/order-lifecycle for order states
      */
-    public function cancel(string $orderId, array $requestMeta = []): \Commerce\ResponseObject
+    public function cancel(string $orderId, array $requestMeta = []): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/cancel', [
             'order_id' => $orderId,
@@ -383,7 +383,7 @@ class Orders
      *
      * @param string $orderId Unique identifier of the order to refund (required)
      *
-     * @return \Commerce\ResponseObject Refunded order object with updated payment status
+     * @return \Inttegro\ResponseObject Refunded order object with updated payment status
      *
      * @example Refund an order
      * ```php
@@ -397,7 +397,7 @@ class Orders
      *
      * @see https://studio.inttegro.com/retry-a-payment for payment retry guide
      */
-    public function refund(string $orderId): \Commerce\ResponseObject
+    public function refund(string $orderId): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/refund', ['order_id' => $orderId]);
     }
@@ -415,7 +415,7 @@ class Orders
      *   - created_after: string - Filter orders created after this timestamp (ISO 8601)
      *   - created_before: string - Filter orders created before this timestamp (ISO 8601)
      *
-     * @return \Commerce\ResponseObject Paginated list of orders with pagination details
+     * @return \Inttegro\ResponseObject Paginated list of orders with pagination details
      *
      * @example Get first page of orders
      * ```php
@@ -436,7 +436,7 @@ class Orders
      * @see https://studio.inttegro.com/pagination for pagination guide
      * @see https://studio.inttegro.com/orders for API reference
      */
-    public function page(array $payload = []): \Commerce\ResponseObject
+    public function page(array $payload = []): \Inttegro\ResponseObject
     {
         return $this->http->post('/orders/page', $payload);
     }

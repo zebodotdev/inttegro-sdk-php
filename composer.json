@@ -1,15 +1,15 @@
 {
-  "name": "zebo/commerce-sdk",
-  "description": "Lightweight PHP SDK for the Zebo Commerce API",
+  "name": "inttegro/sdk",
+  "description": "Official PHP SDK for the Inttegro API",
   "type": "library",
   "license": "MIT",
   "autoload": {
     "psr-4": {
-      "Commerce\\": "src/Commerce/"
+      "Inttegro\\": "src/Inttegro/"
     },
     "files": [
-      "src/Commerce/Errors.php",
-      "src/Commerce/Enums.php"
+      "src/Inttegro/Errors.php",
+      "src/Inttegro/Enums.php"
     ]
   },
   "require": {

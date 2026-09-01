@@ -11,7 +11,7 @@ COPY tests ./tests
 # Composer distribution is VCS-tag based; emit a source tarball for release artifacts.
 FROM base AS dist
 RUN composer validate --strict
-RUN mkdir -p /out && tar -czf /out/commerce-sdk-php.tar.gz .
+RUN mkdir -p /out && tar -czf /out/sdk-php.tar.gz .
 
 # CI target (use in GitHub Actions)
 FROM base AS ci

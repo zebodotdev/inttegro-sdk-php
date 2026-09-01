@@ -1,8 +1,8 @@
 <?php
 
-namespace Commerce\Resources;
+namespace Inttegro\Resources;
 
-use Commerce\HttpClient;
+use Inttegro\HttpClient;
 
 /**
  * Balance transactions resource for payment- and refund-sourced merchant balance entries.
@@ -25,7 +25,7 @@ class BalanceTransactions
      * Retrieve one transaction with required id, type, order_id, amount, and created_at.
      * When type is payment the response has payment_id; when refund it has refund_id.
      */
-    public function lookup(string $transactionId): \Commerce\ResponseObject
+    public function lookup(string $transactionId): \Inttegro\ResponseObject
     {
         return $this->http->post('/balance_transactions/lookup', ['transaction_id' => $transactionId]);
     }
@@ -41,7 +41,7 @@ class BalanceTransactions
      *   - page_number: int - 0-based page index (0-10, default: 0)
      *   - page_size: int - Results per page (1-256, default varies)
      *
-     * @return \Commerce\ResponseObject Paginated transaction list with page details
+     * @return \Inttegro\ResponseObject Paginated transaction list with page details
      *
      * @example Get recent balance transactions
      * ```php
@@ -63,7 +63,7 @@ class BalanceTransactions
      * @see https://studio.inttegro.com/balance-transactions for balance transaction guide
      * @see https://studio.inttegro.com/pagination for pagination guide
      */
-    public function page(array $payload = []): \Commerce\ResponseObject
+    public function page(array $payload = []): \Inttegro\ResponseObject
     {
         return $this->http->post('/balance_transactions/page', $payload);
     }

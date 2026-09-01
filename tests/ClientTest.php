@@ -1,11 +1,11 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
-use Commerce\Client;
-use Commerce\AuthenticationError;
-use Commerce\Enums\ProductType;
-use Commerce\Enums\RefundReason;
-use Commerce\Enums\UploadRequestStatus;
+use Inttegro\Client;
+use Inttegro\AuthenticationError;
+use Inttegro\Enums\ProductType;
+use Inttegro\Enums\RefundReason;
+use Inttegro\Enums\UploadRequestStatus;
 
 final class ClientTest extends TestCase
 {
@@ -435,7 +435,7 @@ final class ClientTest extends TestCase
     /** @return array<int, string> */
     private function openApiSpecPaths(): array
     {
-        $specPath = getenv('COMMERCE_OPENAPI_SPEC') ?: dirname(__DIR__) . '/../../openapi/commerce.yml';
+        $specPath = getenv('INTTEGRO_OPENAPI_SPEC') ?: dirname(__DIR__) . '/../../openapi/commerce.yml';
         $this->assertFileExists($specPath, "OpenAPI spec not found at $specPath");
 
         $contents = file_get_contents($specPath);
@@ -451,7 +451,7 @@ final class ClientTest extends TestCase
     /** @return array<int, string> */
     private function implementedSdkPaths(): array
     {
-        $resourceFiles = glob(dirname(__DIR__) . '/src/Commerce/Resources/*.php') ?: [];
+        $resourceFiles = glob(dirname(__DIR__) . '/src/Inttegro/Resources/*.php') ?: [];
         $paths = [];
         foreach ($resourceFiles as $resourceFile) {
             $contents = file_get_contents($resourceFile);

@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - "php-sdk-v*"
-      - "commerce-php-v*"
+      - "inttegro-php-v*"
 
 jobs:
   release:
@@ -14,15 +14,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate composer manifest
-        working-directory: sdks/php
         run: composer validate --no-check-all --no-check-publish
 
       - name: Create dist archive
-        working-directory: sdks/php
-        run: zip -r commerce-php-sdk.zip src composer.json README.md LICENSE
+        run: zip -r inttegro-php-sdk.zip src composer.json README.md LICENSE
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: commerce-php-sdk
-          path: sdks/php/commerce-php-sdk.zip
+          name: inttegro-php-sdk
+          path: inttegro-php-sdk.zip

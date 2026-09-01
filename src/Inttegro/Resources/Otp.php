@@ -1,8 +1,8 @@
 <?php
 
-namespace Commerce\Resources;
+namespace Inttegro\Resources;
 
-use Commerce\HttpClient;
+use Inttegro\HttpClient;
 
 /**
  * OTP resource for managing one-time password sessions.
@@ -37,7 +37,7 @@ class Otp
      *   - purpose: string - Description of why OTP is needed (optional)
      *   - Additional transaction configuration parameters
      *
-     * @return \Commerce\ResponseObject Created OTP session
+     * @return \Inttegro\ResponseObject Created OTP session
      *
      * @example Initialize OTP session
      * ```php
@@ -56,7 +56,7 @@ class Otp
      *
      * @see https://studio.inttegro.com/otp for OTP implementation guide
      */
-    public function initiate(array $payload): \Commerce\ResponseObject
+    public function initiate(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/otp/initiate', $payload);
     }
@@ -73,7 +73,7 @@ class Otp
      *   - recipient: string - Recipient phone number (required)
      *   - token: string - Customer-provided OTP code (required, typically 6 digits)
      *
-     * @return \Commerce\ResponseObject Verification result
+     * @return \Inttegro\ResponseObject Verification result
      *
      * @example Verify OTP code
      * ```php
@@ -93,7 +93,7 @@ class Otp
      *
      * @see https://studio.inttegro.com/otp for verification flow
      */
-    public function verify(array $payload): \Commerce\ResponseObject
+    public function verify(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/otp/verify', $payload);
     }
@@ -108,7 +108,7 @@ class Otp
      * @param array $payload Lookup parameters
      *   - transaction_id: string - OTP transaction identifier to retrieve (required)
      *
-     * @return \Commerce\ResponseObject OTP session details
+     * @return \Inttegro\ResponseObject OTP session details
      *
      * @example Lookup OTP session
      * ```php
@@ -123,7 +123,7 @@ class Otp
      *
      * @see https://studio.inttegro.com/otp for OTP overview
      */
-    public function lookup(array $payload): \Commerce\ResponseObject
+    public function lookup(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/otp/lookup', $payload);
     }
@@ -139,7 +139,7 @@ class Otp
      *   - transaction_id: string - OTP transaction to cancel (required)
      *   - reason: string - Reason for cancellation (required)
      *
-     * @return \Commerce\ResponseObject Cancelled session
+     * @return \Inttegro\ResponseObject Cancelled session
      *
      * @example Cancel OTP session
      * ```php
@@ -153,7 +153,7 @@ class Otp
      *
      * @see https://studio.inttegro.com/otp for session management
      */
-    public function cancel(array $payload): \Commerce\ResponseObject
+    public function cancel(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/otp/cancel', $payload);
     }

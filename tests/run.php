@@ -3,12 +3,12 @@
 require __DIR__ . '/../src/autoload.php';
 require __DIR__ . '/TestCase.php';
 
-use Commerce\Client;
-use Commerce\AuthenticationError;
+use Inttegro\Client;
+use Inttegro\AuthenticationError;
 
 function openApiSpecPaths(): array
 {
-    $specPath = getenv('COMMERCE_OPENAPI_SPEC') ?: dirname(__DIR__) . '/../../openapi/commerce.yml';
+    $specPath = getenv('INTTEGRO_OPENAPI_SPEC') ?: dirname(__DIR__) . '/../../openapi/commerce.yml';
     assertTrue(is_file($specPath), "OpenAPI spec not found at $specPath");
 
     $contents = file_get_contents($specPath);
@@ -23,7 +23,7 @@ function openApiSpecPaths(): array
 
 function implementedSdkPaths(): array
 {
-    $resourceFiles = glob(dirname(__DIR__) . '/src/Commerce/Resources/*.php') ?: [];
+    $resourceFiles = glob(dirname(__DIR__) . '/src/Inttegro/Resources/*.php') ?: [];
     $paths = [];
     foreach ($resourceFiles as $resourceFile) {
         $contents = file_get_contents($resourceFile);

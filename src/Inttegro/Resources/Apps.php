@@ -1,8 +1,8 @@
 <?php
 
-namespace Commerce\Resources;
+namespace Inttegro\Resources;
 
-use Commerce\HttpClient;
+use Inttegro\HttpClient;
 
 /** Application creation, lookup, and update operations. */
 class Apps
@@ -14,17 +14,17 @@ class Apps
         $this->http = $http;
     }
 
-    public function create(array $payload): \Commerce\ResponseObject
+    public function create(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/apps/create', $payload);
     }
 
-    public function lookup(): \Commerce\ResponseObject
+    public function lookup(): \Inttegro\ResponseObject
     {
         return $this->http->post('/apps/lookup', []);
     }
 
-    public function update(array $payload): \Commerce\ResponseObject
+    public function update(array $payload): \Inttegro\ResponseObject
     {
         return $this->http->post('/apps/update', $payload);
     }

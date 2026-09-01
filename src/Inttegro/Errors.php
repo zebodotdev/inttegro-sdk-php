@@ -1,12 +1,12 @@
 <?php
 
-namespace Commerce;
+namespace Inttegro;
 
-class CommerceError extends \Exception
+class InttegroError extends \Exception
 {
 }
 
-class NetworkError extends CommerceError
+class NetworkError extends InttegroError
 {
     public ?\Throwable $previousError;
 
@@ -21,7 +21,7 @@ class TimeoutError extends NetworkError
 {
 }
 
-class APIError extends CommerceError
+class APIError extends InttegroError
 {
     public int $status;
     public $code;
