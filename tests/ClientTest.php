@@ -500,7 +500,7 @@ final class ClientTest extends TestCase
             $requests[] = compact('method', 'url', 'headers', 'payload');
             return [
                 'status' => 200,
-                'body' => json_encode(['ok' => true]),
+                'body' => json_encode(['order' => ['id' => 'or_1', 'status' => 'preparing']]),
                 'headers' => ['content-type' => 'application/json'],
             ];
         };
@@ -520,7 +520,7 @@ final class ClientTest extends TestCase
             $requests[] = compact('method', 'url', 'headers', 'payload');
             return [
                 'status' => 200,
-                'body' => json_encode(['ok' => true]),
+                'body' => json_encode(['order' => ['id' => 'or_1', 'status' => 'preparing']]),
                 'headers' => ['content-type' => 'application/json'],
             ];
         };
