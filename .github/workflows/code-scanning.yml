@@ -1,5 +1,7 @@
 name: PHP Code Scanning
 
+permissions: read-all
+
 on:
   push:
     branches: [main, master]
