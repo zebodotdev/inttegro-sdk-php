@@ -113,7 +113,15 @@ final class ClientTest extends TestCase
         $client->orders->sendReceipt(['order_id' => 'or_1']);
         $client->orders->complete(['order_id' => 'or_1']);
         $client->orders->cancel('or_1');
-        $client->orders->refund('or_1');
+        $refundPayload = [
+            'order_id' => 'or_1',
+            'reason' => 'requested_by_customer',
+            'line_items' => [[
+                'order_line_item_id' => 'oli_1',
+                'refund_amount' => ['currency' => 'ghs', 'value' => 100],
+            ]],
+        ];
+        $client->orders->refund($refundPayload);
         $client->orders->page([]);
 
         $client->paymentMethods->tokenize(['type' => 'mobile_money']);
@@ -368,6 +376,36 @@ final class ClientTest extends TestCase
         ];
 
         $this->assertSame($expected, $paths);
+    }
+
+    public function test_order_refund_alias_preserves_create_refund_shape(): void
+    {
+        $requests = [];
+        $adapter = function ($method, $url, $headers, $payload) use (&$requests) {
+            $requests[] = compact('method', 'url', 'headers', 'payload');
+            return [
+                'status' => 200,
+                'body' => json_encode(['refund' => ['id' => 'rf_1']]),
+                'headers' => ['content-type' => 'application/json'],
+            ];
+        };
+        $payload = [
+            'order_id' => 'or_1',
+            'reason' => 'requested_by_customer',
+            'request_meta' => ['idempotency_key' => 'refund-alias-1'],
+            'line_items' => [[
+                'order_line_item_id' => 'oli_1',
+                'refund_amount' => ['currency' => 'ghs', 'value' => 100],
+            ]],
+        ];
+
+        $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
+        $response = $client->orders->refund($payload, 'refund-alias-header-1');
+
+        $this->assertSame('/orders/refund', parse_url($requests[0]['url'], PHP_URL_PATH));
+        $this->assertSame($payload, json_decode($requests[0]['payload'], true));
+        $this->assertContains('Idempotency-Key: refund-alias-header-1', $requests[0]['headers']);
+        $this->assertSame('rf_1', $response->refund->id);
     }
 
     public function test_authentication_error_is_raised(): void

@@ -376,30 +376,37 @@ class Orders
     }
 
     /**
-     * Refund a paid order, returning funds to the customer.
+     * Create a refund through the `/orders/refund` compatibility alias.
      *
-     * Refunds the payment associated with an order, sending funds back to the customer's original payment
-     * method. The order must have been successfully paid before it can be refunded.
+     * This accepts the same line-item payload and returns the same refund response as
+     * `$client->refunds->create()`. New integrations should use that canonical method.
      *
-     * @param string $orderId Unique identifier of the order to refund (required)
+     * @param array $payload Create-refund payload containing order_id, reason, and line_items
+     * @param string|null $idempotencyKey Optional key for safely retrying the request
      *
-     * @return \Inttegro\ResponseObject Refunded order object with updated payment status
+     * @return \Inttegro\ResponseObject Created refund response
      *
      * @example Refund an order
      * ```php
-     * $result = $client->orders->refund(
-     *     'GKj7A8lM5wEGRUvbqpI4bkDFsQvpqVyh5fqePNnb'
-     * );
+     * $result = $client->orders->refund([
+     *     'order_id' => 'or_0123456789abcdefghijklmnopqrstuvwxyzABCD',
+     *     'reason' => 'requested_by_customer',
+     *     'line_items' => [[
+     *         'order_line_item_id' => 'oli_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN',
+     *         'refund_amount' => ['currency' => 'ghs', 'value' => 2500],
+     *     ]],
+     * ]);
      *
-     * $order = $result->data['order'];
-     * echo "Order refunded. Refund ID: {$order['payment']['refund']['id']}\n";
+     * echo "Refund created: {$result->refund->id}\n";
      * ```
-     *
-     * @see https://studio.inttegro.com/retry-a-payment for payment retry guide
      */
-    public function refund(string $orderId): \Inttegro\ResponseObject
+    public function refund(array $payload, ?string $idempotencyKey = null): \Inttegro\ResponseObject
     {
-        return $this->http->post('/orders/refund', ['order_id' => $orderId]);
+        return $this->http->postWithHeaders(
+            '/orders/refund',
+            $payload,
+            $idempotencyKey ? ['Idempotency-Key' => $idempotencyKey] : []
+        );
     }
 
     /**

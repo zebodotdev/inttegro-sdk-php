@@ -77,7 +77,14 @@ $client->orders->requestConfirmation('or_1');
 $client->orders->finalize('or_1');
 $client->orders->complete(['order_id' => 'or_1']);
 $client->orders->cancel('or_1');
-$client->orders->refund('or_1');
+$client->orders->refund([
+    'order_id' => 'or_1',
+    'reason' => 'requested_by_customer',
+    'line_items' => [[
+        'order_line_item_id' => 'oli_1',
+        'refund_amount' => ['currency' => 'ghs', 'value' => 100],
+    ]],
+]);
 $client->orders->page([]);
 
 $client->paymentMethods->tokenize(['type' => 'mobile_money']);
