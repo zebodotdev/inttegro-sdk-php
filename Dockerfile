@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.7
 
-FROM php:8.3-cli-alpine AS base
+FROM php:8.3-cli-alpine@sha256:afdf8b1fee58486ccc0dab5f30f634b86873d56dac985f71ba217945647c05ad AS base
 WORKDIR /app
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2@sha256:8fa35f42911ff8bbee92aa37d781de6799168d4a0535ac6991f1b250bc2e0245 /usr/bin/composer /usr/bin/composer
 COPY composer.json phpunit.xml ./
 RUN composer install --no-interaction --prefer-dist
 COPY src ./src
