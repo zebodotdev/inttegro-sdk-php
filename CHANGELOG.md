@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- Breaking: moved order domain types from `Inttegro\Models` to the root `Inttegro` namespace.
+
 ## [1.0.0] - 2026-09-01
 
 - Breaking: renamed the package, namespace, and base exception to `inttegro/sdk`, `Inttegro`, and `InttegroError`.

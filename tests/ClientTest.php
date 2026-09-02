@@ -6,6 +6,10 @@ use Inttegro\AuthenticationError;
 use Inttegro\Enums\ProductType;
 use Inttegro\Enums\RefundReason;
 use Inttegro\Enums\UploadRequestStatus;
+use Inttegro\Order;
+use Inttegro\OrderDocumentDeliveryResult;
+use Inttegro\OrderPage;
+use Inttegro\Refund;
 
 final class ClientTest extends TestCase
 {
@@ -72,6 +76,51 @@ final class ClientTest extends TestCase
         $this->assertFalse(isset($refund->payment_id));
     }
 
+    public function test_orders_return_domain_models_instead_of_transport_envelopes(): void
+    {
+        $adapter = function ($method, $url, $headers, $payload) {
+            unset($method, $headers, $payload);
+            $path = parse_url($url, PHP_URL_PATH) ?: '';
+            $body = match ($path) {
+                '/orders/page' => [
+                    'page' => [
+                        'number' => 0,
+                        'size' => 1,
+                        'orders' => [['id' => 'or_1', 'status' => 'paid']],
+                    ],
+                ],
+                '/orders/refund' => ['refund' => ['id' => 'rf_1', 'status' => 'pending']],
+                '/orders/send_invoice' => [
+                    'order' => ['id' => 'or_1', 'status' => 'paid'],
+                    'delivery' => ['document_kind' => 'invoice', 'sent_channels' => ['sms']],
+                ],
+                default => ['order' => ['id' => 'or_1', 'status' => 'paid']],
+            };
+            return [
+                'status' => 200,
+                'body' => json_encode($body),
+                'headers' => ['content-type' => 'application/json'],
+            ];
+        };
+        $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
+
+        $order = $client->orders->lookup('or_1');
+        $page = $client->orders->page(['page_size' => 1]);
+        $refund = $client->orders->refund([
+            'order_id' => 'or_1',
+            'reason' => 'requested_by_customer',
+            'line_items' => [],
+        ]);
+        $delivery = $client->orders->sendInvoice(['order_id' => 'or_1']);
+
+        $this->assertInstanceOf(Order::class, $order);
+        $this->assertInstanceOf(OrderPage::class, $page);
+        $this->assertInstanceOf(Order::class, $page->orders[0]);
+        $this->assertInstanceOf(Refund::class, $refund);
+        $this->assertInstanceOf(OrderDocumentDeliveryResult::class, $delivery);
+        $this->assertSame('or_1', $order->id);
+    }
+
     public function test_sdk_implementation_paths_cover_openapi_spec(): void
     {
         $missing = array_values(array_diff(
@@ -92,9 +141,21 @@ final class ClientTest extends TestCase
         $requests = [];
         $adapter = function ($method, $url, $headers, $payload) use (&$requests) {
             $requests[] = compact('method', 'url', 'headers', 'payload');
+            $path = parse_url($url, PHP_URL_PATH) ?: '';
+            $body = match ($path) {
+                '/orders/refund' => ['refund' => ['id' => 'rf_1']],
+                '/orders/page' => ['page' => ['number' => 0, 'size' => 0, 'orders' => []]],
+                '/orders/send_invoice', '/orders/send_receipt' => [
+                    'order' => ['id' => 'or_1', 'status' => 'preparing'],
+                    'delivery' => [],
+                ],
+                default => str_starts_with($path, '/orders/')
+                    ? ['order' => ['id' => 'or_1', 'status' => 'preparing']]
+                    : ['ok' => true],
+            };
             return [
                 'status' => 200,
-                'body' => json_encode(['ok' => true]),
+                'body' => json_encode($body),
                 'headers' => ['content-type' => 'application/json'],
             ];
         };
@@ -405,7 +466,7 @@ final class ClientTest extends TestCase
         $this->assertSame('/orders/refund', parse_url($requests[0]['url'], PHP_URL_PATH));
         $this->assertSame($payload, json_decode($requests[0]['payload'], true));
         $this->assertContains('Idempotency-Key: refund-alias-header-1', $requests[0]['headers']);
-        $this->assertSame('rf_1', $response->refund->id);
+        $this->assertSame('rf_1', $response->id);
     }
 
     public function test_authentication_error_is_raised(): void

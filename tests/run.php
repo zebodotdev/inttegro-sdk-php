@@ -58,9 +58,21 @@ assertEquals(
 $requests = [];
 $adapter = function ($method, $url, $headers, $payload) use (&$requests) {
     $requests[] = compact('method', 'url', 'headers', 'payload');
+    $path = parse_url($url, PHP_URL_PATH) ?: '';
+    $body = match ($path) {
+        '/orders/refund' => ['refund' => ['id' => 'rf_1']],
+        '/orders/page' => ['page' => ['number' => 0, 'size' => 0, 'orders' => []]],
+        '/orders/send_invoice', '/orders/send_receipt' => [
+            'order' => ['id' => 'or_1', 'status' => 'preparing'],
+            'delivery' => [],
+        ],
+        default => str_starts_with($path, '/orders/')
+            ? ['order' => ['id' => 'or_1', 'status' => 'preparing']]
+            : ['ok' => true],
+    };
     return [
         'status' => 200,
-        'body' => json_encode(['ok' => true]),
+        'body' => json_encode($body),
         'headers' => ['content-type' => 'application/json'],
     ];
 };
@@ -75,6 +87,8 @@ $client->orders->pay(['order_id' => 'or_1']);
 $client->orders->confirmPayment(['order_id' => 'or_1', 'token' => '123456']);
 $client->orders->requestConfirmation('or_1');
 $client->orders->finalize('or_1');
+$client->orders->sendInvoice(['order_id' => 'or_1']);
+$client->orders->sendReceipt(['order_id' => 'or_1']);
 $client->orders->complete(['order_id' => 'or_1']);
 $client->orders->cancel('or_1');
 $client->orders->refund([
@@ -224,6 +238,8 @@ $expected = [
     '/orders/confirm_payment',
     '/orders/request_confirmation',
     '/orders/finalize',
+    '/orders/send_invoice',
+    '/orders/send_receipt',
     '/orders/complete',
     '/orders/cancel',
     '/orders/refund',
@@ -338,8 +354,8 @@ try {
 
 assertTrue($caught, 'AuthenticationError was not raised');
 
-$wrapper = $client->orders->create(['order' => ['id' => 'or_123']]);
-assertEquals('or_123', $wrapper->order->id);
-assertEquals('or_123', $wrapper['order']->id);
+$order = $client->orders->create(['number' => 'ORDER-3']);
+assertTrue($order instanceof \Inttegro\Order);
+assertEquals('or_1', $order->id);
 
 echo "All tests passed\n";

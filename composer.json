@@ -14,7 +14,8 @@
     },
     "files": [
       "src/Inttegro/Errors.php",
-      "src/Inttegro/Enums.php"
+      "src/Inttegro/Enums.php",
+      "src/Inttegro/Orders.php"
     ]
   },
   "require": {

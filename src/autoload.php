@@ -18,3 +18,4 @@ spl_autoload_register(function ($class) {
 
 require_once __DIR__ . '/Inttegro/Errors.php';
 require_once __DIR__ . '/Inttegro/Enums.php';
+require_once __DIR__ . '/Inttegro/Orders.php';

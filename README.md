@@ -6,7 +6,7 @@ The official PHP client for building server-side Inttegro integrations.
 
 > **Fastest, most modern path:** connect an agent to [Inttegro MCP](https://studio.inttegro.com/inttegro-mcp) at `https://mcp.inttegro.com`, then ask it to run `design_integration`. It will produce an implementation and test plan for your application. Use this SDK when you are ready to connect that plan to your PHP service.
 
-All official Inttegro SDKs expose the same API capabilities. This package adds PHP-specific response access and enum support.
+All official Inttegro SDKs expose the same API capabilities. This package adds PHP-native domain models, flexible response access, and enum support.
 
 ## Install
 
@@ -40,7 +40,7 @@ use Inttegro\Enums\ProductType;
 $inttegro = new Client(getenv('INTTEGRO_API_KEY'));
 
 try {
-    $result = $inttegro->orders->create([
+    $order = $inttegro->orders->create([
         'request_meta' => ['idempotency_key' => 'checkout-cart-123'],
         'customer_data' => [
             'name' => 'Akua Mensah',
@@ -63,9 +63,9 @@ try {
         ]],
     ]);
 
-    $checkoutUrl = $result->order->invoice->format->web->url
+    $checkoutUrl = $order->invoice?->format?->web?->url
         ?? throw new RuntimeException('Order did not include a checkout URL');
-    echo $result->order->id . ' ' . $checkoutUrl . PHP_EOL;
+    echo $order->id . ' ' . $checkoutUrl . PHP_EOL;
 } catch (APIError $error) {
     error_log(($error->code ?? 'api_error') . ': ' . ($error->detail ?? $error->getMessage()));
     throw $error;
@@ -81,7 +81,8 @@ The SDK covers orders and checkout, customers, products and prices, purchase int
 PHP-specific features:
 
 - Native array request payloads and backed enums for public API values.
-- Response objects with both property and `ArrayAccess` syntax, plus `toArray()` and JSON serialization.
+- Typed domain models from order operations, with transport envelopes decoded internally.
+- Flexible response objects for other resources, with property and `ArrayAccess` syntax, `toArray()`, and JSON serialization.
 - No production Composer dependencies beyond PHP itself; HTTP uses cURL.
 - Configurable timeout, base URL, and injectable adapter for tests.
 - Structured authentication, rate-limit, network, timeout, and API exceptions.
