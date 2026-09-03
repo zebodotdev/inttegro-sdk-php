@@ -35,7 +35,7 @@ class Chimes
      *   - transport: string - Delivery method: 'sms' or 'email' (optional, auto-detected from recipient)
      *   - sender: string - Sender name/number for SMS or from-address for email (optional)
      *
-     * @return \Inttegro\ResponseObject Sent chime with delivery status
+     * @return \Inttegro\Chime Sent chime with delivery status
      *
      * @example Send SMS notification
      * ```php
@@ -61,9 +61,9 @@ class Chimes
      *
      * @see https://studio.inttegro.com/send-customer-notification for notification guide
      */
-    public function send(array $payload): \Inttegro\ResponseObject
+    public function send(array $payload): \Inttegro\Chime
     {
-        return $this->http->post('/chimes/send', $payload);
+        return $this->http->postResource('/chimes/send', \Inttegro\Chime::class, 'chime', $payload);
     }
 
     /**
@@ -75,7 +75,7 @@ class Chimes
      *
      * @param string $chimeId Unique identifier of the chime to retrieve (required)
      *
-     * @return \Inttegro\ResponseObject Complete chime object with delivery details
+     * @return \Inttegro\Chime Complete chime object with delivery details
      *
      * @example Lookup a chime
      * ```php
@@ -91,15 +91,15 @@ class Chimes
      *
      * @see https://studio.inttegro.com/chimes for chime overview
      */
-    public function lookup(string $chimeId): \Inttegro\ResponseObject
+    public function lookup(string $chimeId): \Inttegro\Chime
     {
-        return $this->http->post('/chimes/lookup', ['chime_id' => $chimeId]);
+        return $this->http->postResource('/chimes/lookup', \Inttegro\Chime::class, 'chime', ['chime_id' => $chimeId]);
     }
 
     /** Retrieve a paginated list of chimes. */
-    public function page(array $payload = []): \Inttegro\ResponseObject
+    public function page(array $payload = []): \Inttegro\ChimePage
     {
-        return $this->http->post('/chimes/page', $payload);
+        return $this->http->postResource('/chimes/page', \Inttegro\ChimePage::class, 'page', $payload);
     }
 
     /**
@@ -115,7 +115,7 @@ class Chimes
      *   - sender_id: string - Sender identifier (optional)
      *   - purpose: string - Purpose of this scheduled chime (optional)
      *
-     * @return \Inttegro\ResponseObject Scheduled chime object with send time
+     * @return \Inttegro\ScheduleCreationDetail Scheduled chime object with send time
      *
      * @example Schedule SMS for tomorrow
      * ```php
@@ -133,9 +133,9 @@ class Chimes
      *
      * @see https://studio.inttegro.com/send-scheduled-notifications for scheduling guide
      */
-    public function schedule(array $payload): \Inttegro\ResponseObject
+    public function schedule(array $payload): \Inttegro\ScheduleCreationDetail
     {
-        return $this->http->post('/chimes/schedule', $payload);
+        return $this->http->postResource('/chimes/schedule', \Inttegro\ScheduleCreationDetail::class, 'scheduled_chime', $payload);
     }
 
     /**
@@ -153,10 +153,10 @@ class Chimes
      *   - preferred_gateway: string - Preferred delivery gateway (optional)
      *   - request_meta: array - Request controls such as idempotency_key (optional)
      *
-     * @return \Inttegro\ResponseObject Broadcast summary
+     * @return \Inttegro\BroadcastCreationDetail Broadcast summary
      */
-    public function broadcast(array $payload): \Inttegro\ResponseObject
+    public function broadcast(array $payload): \Inttegro\BroadcastCreationDetail
     {
-        return $this->http->post('/chimes/broadcast', $payload);
+        return $this->http->postResource('/chimes/broadcast', \Inttegro\BroadcastCreationDetail::class, 'broadcast', $payload);
     }
 }

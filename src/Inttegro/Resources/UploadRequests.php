@@ -3,7 +3,6 @@
 namespace Inttegro\Resources;
 
 use Inttegro\HttpClient;
-use Inttegro\ResponseObject;
 
 class UploadRequests
 {
@@ -11,34 +10,41 @@ class UploadRequests
     {
     }
 
-    public function create(array $payload, array $options = []): ResponseObject
+    public function create(array $payload, array $options = []): \Inttegro\UploadRequest
     {
-        return $this->http->postWithHeaders('/upload_requests/create', $payload, $this->headers($options));
+        return $this->http->postResource('/upload_requests/create', \Inttegro\UploadRequest::class, 'upload_request', $payload, $this->headers($options));
     }
 
-    public function lookup(string $id): ResponseObject
+    public function lookup(string $id): \Inttegro\UploadRequest
     {
-        return $this->http->post('/upload_requests/lookup', ['id' => $id]);
+        return $this->http->postResource('/upload_requests/lookup', \Inttegro\UploadRequest::class, 'upload_request', ['id' => $id]);
     }
 
-    public function page(array $payload = []): ResponseObject
+    public function page(array $payload = []): \Inttegro\UploadRequestPage
     {
-        return $this->http->post('/upload_requests/page', $payload);
+        return $this->http->postResource('/upload_requests/page', \Inttegro\UploadRequestPage::class, 'page', $payload);
     }
 
-    public function cancel(array $payload, array $options = []): ResponseObject
+    public function cancel(array $payload, array $options = []): \Inttegro\UploadRequest
     {
-        return $this->http->postWithHeaders('/upload_requests/cancel', $payload, $this->headers($options));
+        return $this->http->postResource('/upload_requests/cancel', \Inttegro\UploadRequest::class, 'upload_request', $payload, $this->headers($options));
     }
 
-    public function review(array $payload, array $options = []): ResponseObject
+    public function review(array $payload, array $options = []): \Inttegro\UploadRequest
     {
-        return $this->http->postWithHeaders('/upload_requests/review', $payload, $this->headers($options));
+        return $this->http->postResource('/upload_requests/review', \Inttegro\UploadRequest::class, 'upload_request', $payload, $this->headers($options));
     }
 
-    public function fulfill(array $payload): ResponseObject
+    public function fulfill(array $payload): \Inttegro\UploadFulfillment
     {
-        return $this->http->postMultipart($payload['upload_url'], [], ['file' => $payload['file']], [], false);
+        return $this->http->postMultipartValue(
+            $payload['upload_url'],
+            \Inttegro\UploadFulfillment::class,
+            [],
+            ['file' => $payload['file']],
+            [],
+            false
+        );
     }
 
     private function headers(array $options): array

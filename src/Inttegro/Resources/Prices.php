@@ -17,45 +17,45 @@ class Prices
     }
 
     /** Create a price (POST /prices/create). */
-    public function create(array $payload): \Inttegro\ResponseObject
+    public function create(array $payload): \Inttegro\Price
     {
-        return $this->http->post('/prices/create', $payload);
+        return $this->http->postResource('/prices/create', \Inttegro\Price::class, 'price', $payload);
     }
 
     /** Lookup a price by ID (POST /prices/lookup). */
-    public function lookup(string $priceId): \Inttegro\ResponseObject
+    public function lookup(string $priceId): \Inttegro\Price
     {
-        return $this->http->post('/prices/lookup', ['price_id' => $priceId]);
+        return $this->http->postResource('/prices/lookup', \Inttegro\Price::class, 'price', ['price_id' => $priceId]);
     }
 
     /** Page through prices (POST /prices/page). */
-    public function page(array $payload = []): \Inttegro\ResponseObject
+    public function page(array $payload = []): \Inttegro\PricePage
     {
-        return $this->http->post('/prices/page', $payload);
+        return $this->http->postResource('/prices/page', \Inttegro\PricePage::class, 'page', $payload);
     }
 
     /** Update a price (POST /prices/update). */
-    public function update(array $payload): \Inttegro\ResponseObject
+    public function update(array $payload): \Inttegro\Price
     {
-        return $this->http->post('/prices/update', $payload);
+        return $this->http->postResource('/prices/update', \Inttegro\Price::class, 'price', $payload);
     }
 
     /** Activate a price (POST /prices/activate). */
-    public function activate(string $priceId): \Inttegro\ResponseObject
+    public function activate(string $priceId): \Inttegro\Price
     {
-        return $this->http->post('/prices/activate', ['price_id' => $priceId]);
+        return $this->http->postResource('/prices/activate', \Inttegro\Price::class, 'price', ['price_id' => $priceId]);
     }
 
     /** Deactivate a price (POST /prices/deactivate). */
-    public function deactivate(string $priceId): \Inttegro\ResponseObject
+    public function deactivate(string $priceId): \Inttegro\Price
     {
-        return $this->http->post('/prices/deactivate', ['price_id' => $priceId]);
+        return $this->http->postResource('/prices/deactivate', \Inttegro\Price::class, 'price', ['price_id' => $priceId]);
     }
 
     /** Archive a price and mark it inactive (POST /prices/archive). */
-    public function archive(string $priceId, ?string $idempotencyKey = null): \Inttegro\ResponseObject
+    public function archive(string $priceId, ?string $idempotencyKey = null): \Inttegro\Price
     {
         $headers = $idempotencyKey ? ['Idempotency-Key' => $idempotencyKey] : [];
-        return $this->http->postWithHeaders('/prices/archive', ['price_id' => $priceId], $headers);
+        return $this->http->postResource('/prices/archive', \Inttegro\Price::class, 'price', ['price_id' => $priceId], $headers);
     }
 }

@@ -2,8 +2,6 @@
 
 namespace Inttegro;
 
-use Inttegro\ResponseObject;
-
 class HttpClient
 {
     private string $apiKey;
@@ -25,38 +23,70 @@ class HttpClient
         $this->userAgent = 'inttegro-sdk-php/' . Version::VERSION;
     }
 
-    public function get(string $path, array $query = []): ResponseObject
-    {
-        return $this->request('GET', $path, null, $query);
+    /**
+     * @template T of DomainValue
+     * @param class-string<T> $class
+     * @return T
+     */
+    public function postResource(
+        string $path,
+        string $class,
+        string $field,
+        ?array $body = null,
+        array $headers = []
+    ): DomainValue {
+        $data = $this->request('POST', $path, $body, [], $headers);
+        $resource = is_array($data[$field] ?? null) ? $data[$field] : $data;
+        return $class::fromArray($resource);
     }
 
-    public function post(string $path, ?array $body = null, array $query = []): ResponseObject
+    /**
+     * @template T of DomainValue
+     * @param class-string<T> $class
+     * @return T
+     */
+    public function postValue(string $path, string $class, ?array $body = null, array $headers = []): DomainValue
     {
-        return $this->request('POST', $path, $body, $query);
+        return $class::fromArray($this->request('POST', $path, $body, [], $headers));
     }
 
-    public function postWithHeaders(string $path, ?array $body = null, array $headers = []): ResponseObject
-    {
-        $url = $this->buildUrl($path, []);
-        $body = $body ?? [];
-        $body = $this->isIdempotentMutationPath($path) && !$this->hasHeader($headers, 'Idempotency-Key')
-            ? $this->withRequestMetaIdempotency($body)
-            : $this->withoutTopLevelIdempotencyKey($body);
-        $requestHeaders = [
-            'Accept: application/json',
-            'Authorization: Bearer ' . $this->apiKey,
-            'Content-Type: application/json',
-            'User-Agent: ' . $this->userAgent,
-        ];
-        foreach ($headers as $key => $value) {
-            $requestHeaders[] = $key . ': ' . $value;
-        }
-
-        $response = $this->send('POST', $url, $requestHeaders, json_encode($body));
-        return $this->responseObject($response);
+    /**
+     * @template T of DomainValue
+     * @param class-string<T> $class
+     * @return T
+     */
+    public function postMultipartResource(
+        string $path,
+        string $class,
+        string $field,
+        array $fields,
+        array $files,
+        array $headers = [],
+        bool $authenticated = true
+    ): DomainValue {
+        $data = $this->postMultipartArray($path, $fields, $files, $headers, $authenticated);
+        $resource = is_array($data[$field] ?? null) ? $data[$field] : $data;
+        return $class::fromArray($resource);
     }
 
-    public function postMultipart(string $path, array $fields, array $files, array $headers = [], bool $authenticated = true): ResponseObject
+    /**
+     * @template T of DomainValue
+     * @param class-string<T> $class
+     * @return T
+     */
+    public function postMultipartValue(
+        string $path,
+        string $class,
+        array $fields,
+        array $files,
+        array $headers = [],
+        bool $authenticated = true
+    ): DomainValue {
+        return $class::fromArray($this->postMultipartArray($path, $fields, $files, $headers, $authenticated));
+    }
+
+    /** @return array<string, mixed> */
+    private function postMultipartArray(string $path, array $fields, array $files, array $headers, bool $authenticated): array
     {
         $url = $this->buildUrl($path, []);
         $requestHeaders = ['Accept: application/json', 'User-Agent: ' . $this->userAgent];
@@ -82,7 +112,7 @@ class HttpClient
         }
 
         $response = $this->send('POST', $url, $requestHeaders, $fields);
-        return $this->responseObject($response);
+        return $this->responseArray($response);
     }
 
     public function postBinaryJson(string $path, array $body): FileDownload
@@ -112,7 +142,14 @@ class HttpClient
         return new FileDownload($response['body'], $response['headers']);
     }
 
-    private function request(string $method, string $path, ?array $body = null, array $query = []): ResponseObject
+    /** @return array<string, mixed> */
+    private function request(
+        string $method,
+        string $path,
+        ?array $body = null,
+        array $query = [],
+        array $customHeaders = []
+    ): array
     {
         $url = $this->buildUrl($path, $query);
         $headers = [
@@ -123,11 +160,17 @@ class HttpClient
 
         $payload = null;
         if ($body !== null) {
-            $body = strtoupper($method) === 'POST' && $this->isIdempotentMutationPath($path)
+            $body = strtoupper($method) === 'POST'
+                && $this->isIdempotentMutationPath($path)
+                && !$this->hasHeader($customHeaders, 'Idempotency-Key')
                 ? $this->withRequestMetaIdempotency($body)
                 : $this->withoutTopLevelIdempotencyKey($body);
             $headers[] = 'Content-Type: application/json';
             $payload = json_encode($body);
+        }
+
+        foreach ($customHeaders as $key => $value) {
+            $headers[] = $key . ': ' . $value;
         }
 
         try {
@@ -139,7 +182,7 @@ class HttpClient
             throw new NetworkError('Network request failed', $e);
         }
 
-        return $this->responseObject($response);
+        return $this->responseArray($response);
     }
 
     private function withRequestMetaIdempotency(array $body): array
@@ -208,14 +251,15 @@ class HttpClient
         return substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-' . substr($hex, 12, 4) . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20);
     }
 
-    private function responseObject(array $response): ResponseObject
+    /** @return array<string, mixed> */
+    private function responseArray(array $response): array
     {
         $status = $response['status'];
         $rawBody = $response['body'];
         $data = $this->parseJson($rawBody);
 
         if ($status < 400) {
-            return new ResponseObject(is_array($data) ? $data : []);
+            return is_array($data) ? $data : [];
         }
 
         $this->handleErrorResponse($response, $data);

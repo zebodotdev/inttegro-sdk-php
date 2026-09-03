@@ -3,7 +3,6 @@
 namespace Inttegro\Resources;
 
 use Inttegro\HttpClient;
-use Inttegro\ResponseObject;
 
 class FileReferences
 {
@@ -11,8 +10,8 @@ class FileReferences
     {
     }
 
-    public function reconcile(array $payload): ResponseObject
+    public function reconcile(array $payload): \Inttegro\FileReferenceReconciliation
     {
-        return $this->http->post('/file_references/reconcile', $payload);
+        return $this->http->postValue('/file_references/reconcile', \Inttegro\FileReferenceReconciliation::class, $payload);
     }
 }

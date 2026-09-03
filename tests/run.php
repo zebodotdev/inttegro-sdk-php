@@ -31,7 +31,7 @@ function implementedSdkPaths(): array
             continue;
         }
         preg_match_all(
-            '/->(?:get|post|postWithHeaders|postMultipart|postBinaryJson)\(\s*[\'"](\/[a-z0-9_\/-]+)[\'"]/m',
+            '/->(?:postResource|postValue|postMultipartResource|postMultipartValue|postBinaryJson)\(\s*[\'"](\/[a-z0-9_\/-]+)[\'"]/m',
             $contents,
             $matches
         );

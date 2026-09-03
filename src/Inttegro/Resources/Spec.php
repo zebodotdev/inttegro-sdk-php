@@ -37,7 +37,7 @@ class Spec
      *
      * This is a public endpoint that does not require authentication.
      *
-     * @return \Inttegro\ResponseObject Country specifications
+     * @return \Inttegro\CountrySpecifications Country specifications
      *
      * @example Get country specifications
      * ```php
@@ -57,8 +57,8 @@ class Spec
      *
      * @see https://studio.inttegro.com/country-specifications for spec details
      */
-    public function countries(): \Inttegro\ResponseObject
+    public function countries(): \Inttegro\CountrySpecifications
     {
-        return $this->http->post('/spec/countries', []);
+        return $this->http->postValue('/spec/countries', \Inttegro\CountrySpecifications::class, []);
     }
 }

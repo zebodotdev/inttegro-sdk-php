@@ -4,7 +4,6 @@ namespace Inttegro\Resources;
 
 use Inttegro\FileDownload;
 use Inttegro\HttpClient;
-use Inttegro\ResponseObject;
 
 class FileLinks
 {
@@ -12,24 +11,24 @@ class FileLinks
     {
     }
 
-    public function create(array $payload, array $options = []): ResponseObject
+    public function create(array $payload, array $options = []): \Inttegro\FileLinkCreation
     {
-        return $this->http->postWithHeaders('/file_links/create', $payload, $this->headers($options));
+        return $this->http->postValue('/file_links/create', \Inttegro\FileLinkCreation::class, $payload, $this->headers($options));
     }
 
-    public function lookup(string $id): ResponseObject
+    public function lookup(string $id): \Inttegro\FileLink
     {
-        return $this->http->post('/file_links/lookup', ['id' => $id]);
+        return $this->http->postResource('/file_links/lookup', \Inttegro\FileLink::class, 'file_link', ['id' => $id]);
     }
 
-    public function page(array $payload = []): ResponseObject
+    public function page(array $payload = []): \Inttegro\FileLinkPage
     {
-        return $this->http->post('/file_links/page', $payload);
+        return $this->http->postResource('/file_links/page', \Inttegro\FileLinkPage::class, 'page', $payload);
     }
 
-    public function revoke(array $payload, array $options = []): ResponseObject
+    public function revoke(array $payload, array $options = []): \Inttegro\FileLink
     {
-        return $this->http->postWithHeaders('/file_links/revoke', $payload, $this->headers($options));
+        return $this->http->postResource('/file_links/revoke', \Inttegro\FileLink::class, 'file_link', $payload, $this->headers($options));
     }
 
     public function open(string $url, ?string $saveTo = null): FileDownload

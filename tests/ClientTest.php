@@ -64,13 +64,13 @@ final class ClientTest extends TestCase
         };
 
         $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
-        $payment = $client->balanceTransactions->lookup('bt_payment')->transaction;
+        $payment = $client->balanceTransactions->lookup('bt_payment');
         $this->assertSame('payment', $payment->type);
         $this->assertSame('py_123', $payment->payment_id);
         $this->assertFalse(isset($payment->refund_id));
         $this->assertSame(2500, $payment->amount->value);
 
-        $refund = $client->balanceTransactions->page(['page_number' => 1])->page->transactions[0];
+        $refund = $client->balanceTransactions->page(['page_number' => 1])->transactions[0];
         $this->assertSame('refund', $refund->type);
         $this->assertSame('rf_123', $refund->refund_id);
         $this->assertFalse(isset($refund->payment_id));
@@ -119,6 +119,30 @@ final class ClientTest extends TestCase
         $this->assertInstanceOf(Refund::class, $refund);
         $this->assertInstanceOf(OrderDocumentDeliveryResult::class, $delivery);
         $this->assertSame('or_1', $order->id);
+    }
+
+    public function test_all_resource_methods_return_domain_types(): void
+    {
+        $client = new Client('test-key', 'https://api.inttegro.com', 5, static fn() => [
+            'status' => 200,
+            'body' => '{}',
+            'headers' => ['content-type' => 'application/json'],
+        ]);
+
+        foreach ((new \ReflectionObject($client))->getProperties(\ReflectionProperty::IS_PUBLIC) as $property) {
+            $resource = $property->getValue($client);
+            foreach ((new \ReflectionObject($resource))->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+                if ($method->isConstructor()) {
+                    continue;
+                }
+                $type = $method->getReturnType();
+                $this->assertInstanceOf(\ReflectionNamedType::class, $type, $method->getName());
+                $name = $type->getName();
+                $this->assertDoesNotMatchRegularExpression('/Response|Envelope|Models?/', $name);
+                $this->assertNotSame('array', $name, $method->getName());
+                $this->assertNotSame('mixed', $name, $method->getName());
+            }
+        }
     }
 
     public function test_sdk_implementation_paths_cover_openapi_spec(): void
@@ -586,7 +610,7 @@ final class ClientTest extends TestCase
                 continue;
             }
             preg_match_all(
-                '/->(?:get|post|postWithHeaders|postMultipart|postBinaryJson)\(\s*[\'"](\/[a-z0-9_\/-]+)[\'"]/m',
+                '/->(?:postResource|postValue|postMultipartResource|postMultipartValue|postBinaryJson)\(\s*[\'"](\/[a-z0-9_\/-]+)[\'"]/m',
                 $contents,
                 $matches
             );

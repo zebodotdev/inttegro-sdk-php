@@ -31,7 +31,7 @@ class Payouts
      * @param array $destinations Map of currency codes to financial account IDs
      *   Example: ['ghs' => 'fa_abc123', 'usd' => 'fa_xyz789']
      *
-     * @return \Inttegro\ResponseObject Updated payout settings
+     * @return \Inttegro\PayoutSettingsMutation Updated payout settings
      *
      * @example Set payout destinations
      * ```php
@@ -48,9 +48,9 @@ class Payouts
      *
      * @see https://studio.inttegro.com/manage-payout-destinations for payout destination guide
      */
-    public function setDestinations(array $destinations): \Inttegro\ResponseObject
+    public function setDestinations(array $destinations): \Inttegro\PayoutSettingsMutation
     {
-        return $this->http->post('/payouts/set_destinations', ['destinations' => $destinations]);
+        return $this->http->postResource('/payouts/set_destinations', \Inttegro\PayoutSettingsMutation::class, 'settings', ['destinations' => $destinations]);
     }
 
     /**
@@ -59,7 +59,7 @@ class Payouts
      * Returns the payout schedule (automatic or manual) and the financial accounts configured
      * for each currency. Use this to display current settings to users or verify configuration.
      *
-     * @return \Inttegro\ResponseObject Payout settings with schedule and destinations
+     * @return \Inttegro\PayoutSettingsLookup Payout settings with schedule and destinations
      *
      * @example Get payout settings
      * ```php
@@ -72,9 +72,9 @@ class Payouts
      *
      * @see https://studio.inttegro.com/payouts for payout overview
      */
-    public function settings(): \Inttegro\ResponseObject
+    public function settings(): \Inttegro\PayoutSettingsLookup
     {
-        return $this->http->post('/payouts/settings', []);
+        return $this->http->postResource('/payouts/settings', \Inttegro\PayoutSettingsLookup::class, 'settings', []);
     }
 
     /**
@@ -84,7 +84,7 @@ class Payouts
      * financial accounts. Use the schedule endpoint to trigger payouts on-demand. Useful for
      * marketplace platforms or when you need explicit control over cash flow timing.
      *
-     * @return \Inttegro\ResponseObject Updated payout settings with manual schedule
+     * @return \Inttegro\PayoutSettingsMutation Updated payout settings with manual schedule
      *
      * @example Disable automatic payouts
      * ```php
@@ -98,15 +98,15 @@ class Payouts
      *
      * @see https://studio.inttegro.com/disable-automatic-payouts for manual payout guide
      */
-    public function disableAutomatic(): \Inttegro\ResponseObject
+    public function disableAutomatic(): \Inttegro\PayoutSettingsMutation
     {
-        return $this->http->post('/payouts/disable', []);
+        return $this->http->postResource('/payouts/disable', \Inttegro\PayoutSettingsMutation::class, 'settings', []);
     }
 
     /** Enable automatic payouts. */
-    public function enableAutomatic(): \Inttegro\ResponseObject
+    public function enableAutomatic(): \Inttegro\PayoutSettingsMutation
     {
-        return $this->http->post('/payouts/enable', []);
+        return $this->http->postResource('/payouts/enable', \Inttegro\PayoutSettingsMutation::class, 'settings', []);
     }
 
     /**
@@ -115,7 +115,7 @@ class Payouts
      * When FX is enabled, you can receive payouts in a different currency than your balance
      * currency. Inttegro converts funds at market rates during payout execution.
      *
-     * @return \Inttegro\ResponseObject Updated payout settings
+     * @return \Inttegro\PayoutSettingsLookup Updated payout settings
      *
      * @example Enable FX payouts
      * ```php
@@ -125,9 +125,9 @@ class Payouts
      *
      * @see https://studio.inttegro.com/enable-fx-payouts for FX payout guide
      */
-    public function enableFx(): \Inttegro\ResponseObject
+    public function enableFx(): \Inttegro\PayoutSettingsLookup
     {
-        return $this->http->post('/payouts/enable_fx', []);
+        return $this->http->postResource('/payouts/enable_fx', \Inttegro\PayoutSettingsLookup::class, 'settings', []);
     }
 
     /**
@@ -136,7 +136,7 @@ class Payouts
      * After disabling FX, payouts will only be sent in currencies matching your balance currencies.
      * Any financial accounts configured for non-matching currencies will not receive payouts.
      *
-     * @return \Inttegro\ResponseObject Updated payout settings
+     * @return \Inttegro\PayoutSettingsLookup Updated payout settings
      *
      * @example Disable FX payouts
      * ```php
@@ -146,9 +146,9 @@ class Payouts
      *
      * @see https://studio.inttegro.com/payouts-fx-conversion for FX details
      */
-    public function disableFx(): \Inttegro\ResponseObject
+    public function disableFx(): \Inttegro\PayoutSettingsLookup
     {
-        return $this->http->post('/payouts/disable_fx', []);
+        return $this->http->postResource('/payouts/disable_fx', \Inttegro\PayoutSettingsLookup::class, 'settings', []);
     }
 
     /**
@@ -161,7 +161,7 @@ class Payouts
      *   - page_number: int - 1-based page index (1-10, default: 1)
      *   - page_size: int - Results per page (1-256, default varies)
      *
-     * @return \Inttegro\ResponseObject Paginated payout list with page details
+     * @return \Inttegro\PayoutPage Paginated payout list with page details
      *
      * @example Get recent payouts
      * ```php
@@ -181,21 +181,21 @@ class Payouts
      * @see https://studio.inttegro.com/pagination for pagination guide
      * @see https://studio.inttegro.com/payouts for payout overview
      */
-    public function page(array $payload = []): \Inttegro\ResponseObject
+    public function page(array $payload = []): \Inttegro\PayoutPage
     {
-        return $this->http->post('/payouts/page', $payload);
+        return $this->http->postResource('/payouts/page', \Inttegro\PayoutPage::class, 'page', $payload);
     }
 
     /** Schedule a payout to a financial account. */
-    public function schedule(array $payload): \Inttegro\ResponseObject
+    public function schedule(array $payload): \Inttegro\Payout
     {
-        return $this->http->post('/payouts/schedule', $payload);
+        return $this->http->postResource('/payouts/schedule', \Inttegro\Payout::class, 'payout', $payload);
     }
 
     /** Lookup a payout by ID. */
-    public function lookup(string $payoutId): \Inttegro\ResponseObject
+    public function lookup(string $payoutId): \Inttegro\Payout
     {
-        return $this->http->post('/payouts/lookup', ['payout_id' => $payoutId]);
+        return $this->http->postResource('/payouts/lookup', \Inttegro\Payout::class, 'payout', ['payout_id' => $payoutId]);
     }
 
     /**
@@ -205,10 +205,10 @@ class Payouts
      *
      * @param string $payoutId Scheduled payout ID
      *
-     * @return \Inttegro\ResponseObject Canceled payout payload
+     * @return \Inttegro\Payout Canceled payout payload
      */
-    public function cancel(string $payoutId): \Inttegro\ResponseObject
+    public function cancel(string $payoutId): \Inttegro\Payout
     {
-        return $this->http->post('/payouts/cancel', ['payout_id' => $payoutId]);
+        return $this->http->postResource('/payouts/cancel', \Inttegro\Payout::class, 'payout', ['payout_id' => $payoutId]);
     }
 }

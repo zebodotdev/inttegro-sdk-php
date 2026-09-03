@@ -3,7 +3,6 @@
 namespace Inttegro\Resources;
 
 use Inttegro\HttpClient;
-use Inttegro\ResponseObject;
 
 class PurchaseIntents
 {
@@ -11,28 +10,28 @@ class PurchaseIntents
     {
     }
 
-    public function create(array $payload): ResponseObject
+    public function create(array $payload): \Inttegro\PurchaseIntent
     {
-        return $this->http->post('/purchase_intents/create', $payload);
+        return $this->http->postResource('/purchase_intents/create', \Inttegro\PurchaseIntent::class, 'purchase_intent', $payload);
     }
 
-    public function update(array $payload): ResponseObject
+    public function update(array $payload): \Inttegro\PurchaseIntent
     {
-        return $this->http->post('/purchase_intents/update', $payload);
+        return $this->http->postResource('/purchase_intents/update', \Inttegro\PurchaseIntent::class, 'purchase_intent', $payload);
     }
 
-    public function cancel(string $id): ResponseObject
+    public function cancel(string $id): \Inttegro\PurchaseIntent
     {
-        return $this->http->post('/purchase_intents/cancel', ['id' => $id]);
+        return $this->http->postResource('/purchase_intents/cancel', \Inttegro\PurchaseIntent::class, 'purchase_intent', ['id' => $id]);
     }
 
-    public function lookup(string $id): ResponseObject
+    public function lookup(string $id): \Inttegro\PurchaseIntent
     {
-        return $this->http->post('/purchase_intents/lookup', ['id' => $id]);
+        return $this->http->postResource('/purchase_intents/lookup', \Inttegro\PurchaseIntent::class, 'purchase_intent', ['id' => $id]);
     }
 
-    public function page(array $payload = []): ResponseObject
+    public function page(array $payload = []): \Inttegro\PurchaseIntentPage
     {
-        return $this->http->post('/purchase_intents/page', $payload);
+        return $this->http->postResource('/purchase_intents/page', \Inttegro\PurchaseIntentPage::class, 'page', $payload);
     }
 }

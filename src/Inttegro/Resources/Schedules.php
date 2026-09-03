@@ -19,16 +19,16 @@ class Schedules
     /**
      * Lookup a scheduled chime by schedule ID.
      */
-    public function lookup(string $scheduleId): \Inttegro\ResponseObject
+    public function lookup(string $scheduleId): \Inttegro\ScheduleDetail
     {
-        return $this->http->post('/schedules/lookup', ['schedule_id' => $scheduleId]);
+        return $this->http->postResource('/schedules/lookup', \Inttegro\ScheduleDetail::class, 'scheduled_chime', ['schedule_id' => $scheduleId]);
     }
 
     /**
      * Cancel a scheduled chime by schedule ID.
      */
-    public function cancel(string $scheduleId): \Inttegro\ResponseObject
+    public function cancel(string $scheduleId): \Inttegro\ScheduleCancelDetail
     {
-        return $this->http->post('/schedules/cancel', ['schedule_id' => $scheduleId]);
+        return $this->http->postResource('/schedules/cancel', \Inttegro\ScheduleCancelDetail::class, 'scheduled_chime', ['schedule_id' => $scheduleId]);
     }
 }

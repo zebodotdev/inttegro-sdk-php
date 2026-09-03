@@ -4,7 +4,6 @@ namespace Inttegro\Resources;
 
 use Inttegro\FileDownload;
 use Inttegro\HttpClient;
-use Inttegro\ResponseObject;
 
 class Files
 {
@@ -12,23 +11,30 @@ class Files
     {
     }
 
-    public function create(array $payload, array $options = []): ResponseObject
+    public function create(array $payload, array $options = []): \Inttegro\File
     {
         $file = $payload['file'];
         unset($payload['file']);
         $idempotencyKey = $options['idempotency_key'] ?? $payload['idempotency_key'] ?? null;
         unset($payload['idempotency_key']);
-        return $this->http->postMultipart('/files/create', $payload, ['file' => $file], $this->headers($idempotencyKey));
+        return $this->http->postMultipartResource(
+            '/files/create',
+            \Inttegro\File::class,
+            'file',
+            $payload,
+            ['file' => $file],
+            $this->headers($idempotencyKey)
+        );
     }
 
-    public function lookup(string $fileId): ResponseObject
+    public function lookup(string $fileId): \Inttegro\File
     {
-        return $this->http->post('/files/lookup', ['file_id' => $fileId]);
+        return $this->http->postResource('/files/lookup', \Inttegro\File::class, 'file', ['file_id' => $fileId]);
     }
 
-    public function page(array $payload = []): ResponseObject
+    public function page(array $payload = []): \Inttegro\FilePage
     {
-        return $this->http->post('/files/page', $payload);
+        return $this->http->postResource('/files/page', \Inttegro\FilePage::class, 'page', $payload);
     }
 
     public function contents(array $payload): FileDownload
@@ -36,9 +42,9 @@ class Files
         return $this->http->postBinaryJson('/files/contents', $payload);
     }
 
-    public function delete(string $fileId): ResponseObject
+    public function delete(string $fileId): \Inttegro\File
     {
-        return $this->http->post('/files/delete', ['file_id' => $fileId]);
+        return $this->http->postResource('/files/delete', \Inttegro\File::class, 'file', ['file_id' => $fileId]);
     }
 
     private function headers(?string $idempotencyKey): array

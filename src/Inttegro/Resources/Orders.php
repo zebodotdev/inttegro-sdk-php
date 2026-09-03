@@ -7,7 +7,6 @@ use Inttegro\Order;
 use Inttegro\OrderDocumentDeliveryResult;
 use Inttegro\OrderPage;
 use Inttegro\Refund;
-use Inttegro\ResponseObject;
 
 /**
  * Orders resource for creating orders, processing payments, and managing order lifecycle.
@@ -99,13 +98,13 @@ class Orders
      */
     public function create(array $payload): Order
     {
-        return $this->order($this->http->post('/orders/create', $payload));
+        return $this->http->postResource('/orders/create', Order::class, 'order', $payload);
     }
 
     /** Compatibility route for POST /orders/new. Prefer create() for the canonical /orders/create endpoint. */
     public function createLegacy(array $payload): Order
     {
-        return $this->order($this->http->post('/orders/new', $payload));
+        return $this->http->postResource('/orders/new', Order::class, 'order', $payload);
     }
 
     /**
@@ -135,13 +134,18 @@ class Orders
      */
     public function lookup(string $orderId, array $options = []): Order
     {
-        return $this->order($this->http->post('/orders/lookup', array_merge(['order_id' => $orderId], $options)));
+        return $this->http->postResource(
+            '/orders/lookup',
+            Order::class,
+            'order',
+            array_merge(['order_id' => $orderId], $options)
+        );
     }
 
     /** Update mutable fields on an existing order (POST /orders/update). */
     public function update(array $payload): Order
     {
-        return $this->order($this->http->post('/orders/update', $payload));
+        return $this->http->postResource('/orders/update', Order::class, 'order', $payload);
     }
 
     /**
@@ -193,7 +197,7 @@ class Orders
      */
     public function pay(array $payload): Order
     {
-        return $this->order($this->http->post('/orders/pay', $payload));
+        return $this->http->postResource('/orders/pay', Order::class, 'order', $payload);
     }
 
     /**
@@ -224,7 +228,7 @@ class Orders
      */
     public function confirmPayment(array $payload): Order
     {
-        return $this->order($this->http->post('/orders/confirm_payment', $payload));
+        return $this->http->postResource('/orders/confirm_payment', Order::class, 'order', $payload);
     }
 
     /**
@@ -251,10 +255,10 @@ class Orders
      */
     public function requestConfirmation(string $orderId, array $requestMeta = []): Order
     {
-        return $this->order($this->http->post('/orders/request_confirmation', [
+        return $this->http->postResource('/orders/request_confirmation', Order::class, 'order', [
             'order_id' => $orderId,
             'request_meta' => $requestMeta ?: $this->stableOrderRequestMeta('request_confirmation', $orderId),
-        ]));
+        ]);
     }
 
     /**
@@ -281,10 +285,10 @@ class Orders
      */
     public function finalize(string $orderId, array $requestMeta = []): Order
     {
-        return $this->order($this->http->post('/orders/finalize', [
+        return $this->http->postResource('/orders/finalize', Order::class, 'order', [
             'order_id' => $orderId,
             'request_meta' => $requestMeta ?: $this->stableOrderRequestMeta('finalize', $orderId),
-        ]));
+        ]);
     }
 
     /**
@@ -297,7 +301,7 @@ class Orders
      */
     public function sendInvoice(array $payload): OrderDocumentDeliveryResult
     {
-        return OrderDocumentDeliveryResult::fromArray($this->http->post('/orders/send_invoice', $payload)->toArray());
+        return $this->http->postValue('/orders/send_invoice', OrderDocumentDeliveryResult::class, $payload);
     }
 
     /**
@@ -310,7 +314,7 @@ class Orders
      */
     public function sendReceipt(array $payload): OrderDocumentDeliveryResult
     {
-        return OrderDocumentDeliveryResult::fromArray($this->http->post('/orders/send_receipt', $payload)->toArray());
+        return $this->http->postValue('/orders/send_receipt', OrderDocumentDeliveryResult::class, $payload);
     }
 
     /**
@@ -339,7 +343,7 @@ class Orders
      */
     public function complete(array $payload): Order
     {
-        return $this->order($this->http->post('/orders/complete', $payload));
+        return $this->http->postResource('/orders/complete', Order::class, 'order', $payload);
     }
 
     /**
@@ -366,10 +370,10 @@ class Orders
      */
     public function cancel(string $orderId, array $requestMeta = []): Order
     {
-        return $this->order($this->http->post('/orders/cancel', [
+        return $this->http->postResource('/orders/cancel', Order::class, 'order', [
             'order_id' => $orderId,
             'request_meta' => $requestMeta ?: $this->stableOrderRequestMeta('cancel', $orderId),
-        ]));
+        ]);
     }
 
     /**
@@ -399,12 +403,10 @@ class Orders
      */
     public function refund(array $payload, ?string $idempotencyKey = null): Refund
     {
-        $response = $this->http->postWithHeaders(
-            '/orders/refund',
+        return $this->http->postResource('/orders/refund', Refund::class, 'refund',
             $payload,
             $idempotencyKey ? ['Idempotency-Key' => $idempotencyKey] : []
         );
-        return Refund::fromArray($this->resourceData($response, 'refund'));
     }
 
     /**
@@ -435,21 +437,7 @@ class Orders
      */
     public function page(array $payload = []): OrderPage
     {
-        return OrderPage::fromArray($this->resourceData($this->http->post('/orders/page', $payload), 'page'));
-    }
-
-    private function order(ResponseObject $response): Order
-    {
-        return Order::fromArray($this->resourceData($response, 'order'));
-    }
-
-    private function resourceData(ResponseObject $response, string $field): array
-    {
-        $data = $response->toArray();
-        if (!isset($data[$field]) || !is_array($data[$field])) {
-            throw new \UnexpectedValueException("Inttegro returned an invalid {$field} response");
-        }
-        return $data[$field];
+        return $this->http->postResource('/orders/page', OrderPage::class, 'page', $payload);
     }
 
     private function stableOrderRequestMeta(string $action, string $orderId): array

@@ -55,7 +55,7 @@ enum OrderStatus: string { case Preparing = 'preparing'; case RequiresPayment = 
 enum OrderPaymentStatus: string { case Initiated = 'initiated'; case RequiresAction = 'requires_action'; case Overdue = 'overdue'; case Executed = 'executed'; case Paid = 'paid'; case Canceled = 'canceled'; case Expired = 'expired'; case Failed = 'failed'; case Unknown = 'unknown'; }
 enum PaymentAttemptStatus: string { case Initiated = 'initiated'; case Executed = 'executed'; case Succeeded = 'succeeded'; case Canceled = 'canceled'; case Expired = 'expired'; case Failed = 'failed'; case Unknown = 'unknown'; }
 enum CheckoutPaymentStatus: string { case RequiresAction = 'requires_action'; case Processing = 'processing'; case Succeeded = 'succeeded'; case Failed = 'failed'; case Cancelled = 'cancelled'; }
-enum PaymentResponseStatus: string { case Pending = 'pending'; case RequiresConfirmation = 'requires_confirmation'; case Processing = 'processing'; case Succeeded = 'succeeded'; case Failed = 'failed'; }
+enum PaymentResultStatus: string { case Pending = 'pending'; case RequiresConfirmation = 'requires_confirmation'; case Processing = 'processing'; case Succeeded = 'succeeded'; case Failed = 'failed'; }
 enum OrderCreatedFromResourceType: string { case PurchaseIntent = 'purchase_intent'; }
 
 enum RefundReason: string { case RequestedByCustomer = 'requested_by_customer'; case Duplicate = 'duplicate'; case Fraudulent = 'fraudulent'; case OrderCanceled = 'order_canceled'; case ItemReturned = 'item_returned'; case ItemDamaged = 'item_damaged'; case ItemNotReceived = 'item_not_received'; case ItemNotAsDescribed = 'item_not_as_described'; case Custom = 'custom'; }

@@ -3,7 +3,6 @@
 namespace Inttegro\Resources;
 
 use Inttegro\HttpClient;
-use Inttegro\ResponseObject;
 
 class MessageTemplates
 {
@@ -11,39 +10,39 @@ class MessageTemplates
     {
     }
 
-    public function create(array $payload, ?string $idempotencyKey = null): ResponseObject
+    public function create(array $payload, ?string $idempotencyKey = null): \Inttegro\MessageTemplate
     {
-        return $this->http->postWithHeaders('/message_templates/create', $payload, $this->idempotencyHeaders($idempotencyKey));
+        return $this->http->postResource('/message_templates/create', \Inttegro\MessageTemplate::class, 'message_template', $payload, $this->idempotencyHeaders($idempotencyKey));
     }
 
-    public function update(array $payload, ?string $idempotencyKey = null): ResponseObject
+    public function update(array $payload, ?string $idempotencyKey = null): \Inttegro\MessageTemplate
     {
-        return $this->http->postWithHeaders('/message_templates/update', $payload, $this->idempotencyHeaders($idempotencyKey));
+        return $this->http->postResource('/message_templates/update', \Inttegro\MessageTemplate::class, 'message_template', $payload, $this->idempotencyHeaders($idempotencyKey));
     }
 
-    public function publish(string $templateId, ?string $idempotencyKey = null): ResponseObject
+    public function publish(string $templateId, ?string $idempotencyKey = null): \Inttegro\MessageTemplate
     {
-        return $this->http->postWithHeaders('/message_templates/publish', ['id' => $templateId], $this->idempotencyHeaders($idempotencyKey));
+        return $this->http->postResource('/message_templates/publish', \Inttegro\MessageTemplate::class, 'message_template', ['id' => $templateId], $this->idempotencyHeaders($idempotencyKey));
     }
 
-    public function archive(string $templateId, ?string $idempotencyKey = null): ResponseObject
+    public function archive(string $templateId, ?string $idempotencyKey = null): \Inttegro\MessageTemplate
     {
-        return $this->http->postWithHeaders('/message_templates/archive', ['id' => $templateId], $this->idempotencyHeaders($idempotencyKey));
+        return $this->http->postResource('/message_templates/archive', \Inttegro\MessageTemplate::class, 'message_template', ['id' => $templateId], $this->idempotencyHeaders($idempotencyKey));
     }
 
-    public function lookup(string $templateId): ResponseObject
+    public function lookup(string $templateId): \Inttegro\MessageTemplate
     {
-        return $this->http->post('/message_templates/lookup', ['id' => $templateId]);
+        return $this->http->postResource('/message_templates/lookup', \Inttegro\MessageTemplate::class, 'message_template', ['id' => $templateId]);
     }
 
-    public function page(array $payload = []): ResponseObject
+    public function page(array $payload = []): \Inttegro\MessageTemplatesPage
     {
-        return $this->http->post('/message_templates/page', $payload);
+        return $this->http->postResource('/message_templates/page', \Inttegro\MessageTemplatesPage::class, 'page', $payload);
     }
 
-    public function renderPreview(array $payload): ResponseObject
+    public function renderPreview(array $payload): \Inttegro\MessageTemplatePreview
     {
-        return $this->http->post('/message_templates/render_preview', $payload);
+        return $this->http->postValue('/message_templates/render_preview', \Inttegro\MessageTemplatePreview::class, $payload);
     }
 
     private function idempotencyHeaders(?string $idempotencyKey): array

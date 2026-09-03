@@ -3,7 +3,6 @@
 namespace Inttegro\Resources;
 
 use Inttegro\HttpClient;
-use Inttegro\ResponseObject;
 
 class Balances
 {
@@ -14,8 +13,8 @@ class Balances
         $this->http = $http;
     }
 
-    public function get(): ResponseObject
+    public function get(): \Inttegro\BalanceSnapshot
     {
-        return $this->http->post('/balances', []);
+        return $this->http->postValue('/balances', \Inttegro\BalanceSnapshot::class, []);
     }
 }

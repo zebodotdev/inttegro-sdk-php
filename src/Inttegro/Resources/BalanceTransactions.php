@@ -25,9 +25,9 @@ class BalanceTransactions
      * Retrieve one transaction with required id, type, order_id, amount, and created_at.
      * When type is payment the response has payment_id; when refund it has refund_id.
      */
-    public function lookup(string $transactionId): \Inttegro\ResponseObject
+    public function lookup(string $transactionId): \Inttegro\BalanceTransaction
     {
-        return $this->http->post('/balance_transactions/lookup', ['transaction_id' => $transactionId]);
+        return $this->http->postResource('/balance_transactions/lookup', \Inttegro\BalanceTransaction::class, 'transaction', ['transaction_id' => $transactionId]);
     }
 
     /**
@@ -41,30 +41,29 @@ class BalanceTransactions
      *   - page_number: int - 0-based page index (0-10, default: 0)
      *   - page_size: int - Results per page (1-256, default varies)
      *
-     * @return \Inttegro\ResponseObject Paginated transaction list with page details
+     * @return \Inttegro\BalanceTransactionPage Paginated transaction list with page details
      *
      * @example Get recent balance transactions
      * ```php
-     * $result = $client->balanceTransactions->page([
+     * $page = $client->balanceTransactions->page([
      *     'page_number' => 0,
      *     'page_size' => 25
      * ]);
      *
-     * $page = $result->page;
-     * echo "Page {$page['number']} contains {$page['size']} transactions\n";
+     * echo "Page {$page->number} contains {$page->size} transactions\n";
      *
-     * foreach ($page['transactions'] as $txn) {
-     *     $sourceId = $txn['type'] === 'payment' ? $txn['payment_id'] : $txn['refund_id'];
-     *     echo "Transaction {$txn['id']} ({$txn['type']} {$sourceId}): "
-     *         . "{$txn['amount']['value']} {$txn['amount']['currency']}\n";
+     * foreach ($page->transactions as $txn) {
+     *     $sourceId = $txn->type === 'payment' ? $txn->paymentId : $txn->refundId;
+     *     echo "Transaction {$txn->id} ({$txn->type} {$sourceId}): "
+     *         . "{$txn->amount->value} {$txn->amount->currency}\n";
      * }
      * ```
      *
      * @see https://studio.inttegro.com/balance-transactions for balance transaction guide
      * @see https://studio.inttegro.com/pagination for pagination guide
      */
-    public function page(array $payload = []): \Inttegro\ResponseObject
+    public function page(array $payload = []): \Inttegro\BalanceTransactionPage
     {
-        return $this->http->post('/balance_transactions/page', $payload);
+        return $this->http->postResource('/balance_transactions/page', \Inttegro\BalanceTransactionPage::class, 'page', $payload);
     }
 }

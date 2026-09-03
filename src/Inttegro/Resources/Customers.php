@@ -17,27 +17,27 @@ class Customers
     }
 
     /** Create a customer (POST /customers/create). */
-    public function create(array $payload): \Inttegro\ResponseObject
+    public function create(array $payload): \Inttegro\Customer
     {
-        return $this->http->post('/customers/create', $payload);
+        return $this->http->postResource('/customers/create', \Inttegro\Customer::class, 'customer', $payload);
     }
 
     /** Lookup a customer by ID (POST /customers/lookup). */
-    public function lookup(string $customerId): \Inttegro\ResponseObject
+    public function lookup(string $customerId): \Inttegro\Customer
     {
-        return $this->http->post('/customers/lookup', ['customer_id' => $customerId]);
+        return $this->http->postResource('/customers/lookup', \Inttegro\Customer::class, 'customer', ['customer_id' => $customerId]);
     }
 
     /** Update supplied fields on a customer record (POST /customers/update). */
-    public function update(array $payload, ?string $idempotencyKey = null): \Inttegro\ResponseObject
+    public function update(array $payload, ?string $idempotencyKey = null): \Inttegro\Customer
     {
         $headers = $idempotencyKey ? ['Idempotency-Key' => $idempotencyKey] : [];
-        return $this->http->postWithHeaders('/customers/update', $payload, $headers);
+        return $this->http->postResource('/customers/update', \Inttegro\Customer::class, 'customer', $payload, $headers);
     }
 
     /** Page through customers (POST /customers/page). */
-    public function page(array $payload = []): \Inttegro\ResponseObject
+    public function page(array $payload = []): \Inttegro\CustomerPage
     {
-        return $this->http->post('/customers/page', $payload);
+        return $this->http->postResource('/customers/page', \Inttegro\CustomerPage::class, 'page', $payload);
     }
 }
