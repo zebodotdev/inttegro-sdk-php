@@ -1,6 +1,6 @@
 <?php
 
-namespace Inttegro\Enums;
+namespace Inttegro;
 
 // Backed enums for every string enum published by the Inttegro API. Backed enum
 // cases encode to their wire values when included in JSON request payloads.

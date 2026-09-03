@@ -10,10 +10,10 @@ use Inttegro\Money\Currency;
 use Inttegro\Price;
 use Inttegro\PriceParams;
 use Inttegro\AuthenticationError;
-use Inttegro\Enums\ProductType;
-use Inttegro\Enums\MobileMoneyNetwork;
-use Inttegro\Enums\RefundReason;
-use Inttegro\Enums\UploadRequestStatus;
+use Inttegro\ProductType;
+use Inttegro\MobileMoneyNetwork;
+use Inttegro\RefundReason;
+use Inttegro\UploadRequestStatus;
 use Inttegro\Order;
 use Inttegro\OrderDocumentDeliveryResult;
 use Inttegro\OrderPage;
@@ -48,6 +48,7 @@ final class ClientTest extends TestCase
             'id' => 'pr_123',
             'active' => true,
             'nominal' => ['currency' => 'ghs', 'value' => 3005],
+            'product_id' => 'prod_123',
             'created_at' => '2026-09-02T12:00:00Z',
         ]);
         $inlinePrice = Price::fromArray(['currency' => 'eur', 'value' => 900]);
@@ -60,6 +61,7 @@ final class ClientTest extends TestCase
         ], $catalogParams->toArray());
         $this->assertInstanceOf(Amount::class, $catalogPrice->nominal);
         $this->assertSame(Currency::GHS, $catalogPrice->nominal->currency);
+        $this->assertSame('prod_123', $catalogPrice->productId);
         $this->assertSame(Currency::EUR, $inlinePrice->currency);
     }
 

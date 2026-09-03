@@ -3993,6 +3993,7 @@ final class CatalogPrice extends DomainValue
     public readonly ?string $about;
     public readonly bool $active;
     public readonly Amount $nominal;
+    public readonly ?string $productId;
     public readonly ?PriceEmbeddedProduct $product;
     public readonly string $createdAt;
     public readonly ?string $updatedAt;
@@ -4006,6 +4007,7 @@ final class CatalogPrice extends DomainValue
         $this->about = ValueHydrator::string($data['about'] ?? null, true);
         $this->active = ValueHydrator::bool($data['active'] ?? null, false);
         $this->nominal = ValueHydrator::object($data['nominal'] ?? null, [Amount::class], false);
+        $this->productId = ValueHydrator::string($data['product_id'] ?? null, true);
         $this->product = ValueHydrator::object($data['product'] ?? null, [PriceEmbeddedProduct::class], true);
         $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
         $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, true);

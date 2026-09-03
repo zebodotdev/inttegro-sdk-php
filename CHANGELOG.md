@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [5.0.0] - 2026-09-03
+
+- Breaking: removed the generic `Inttegro\Enums` namespace and exposed native backed enums directly from `Inttegro`.
+
 ## [4.0.0] - 2026-09-03
 
 - Breaking: renamed order-prefixed payment value objects to semantic `Payment`, `PaymentAttempt`, `PaymentMethodSnapshot`, and payment payout-configuration types.
