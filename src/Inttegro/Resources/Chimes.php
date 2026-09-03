@@ -39,20 +39,19 @@ class Chimes
      *
      * @example Send SMS notification
      * ```php
-     * $result = $client->chimes->send([
+     * $chime = $client->chimes->send([
      *     'recipient' => '+233541234567',
      *     'message' => 'Your order #12345 has shipped!',
      *     'transport' => 'sms'
      * ]);
      *
-     * $chime = $result->data['chime'];
-     * echo "Chime sent: {$chime['id']}\n";
-     * echo "Status: {$chime['status']}\n";
+     * echo "Chime sent: {$chime->id}\n";
+     * echo "Status: {$chime->transmission?->status}\n";
      * ```
      *
      * @example Send email notification
      * ```php
-     * $result = $client->chimes->send([
+     * $chime = $client->chimes->send([
      *     'recipient' => 'customer@example.com',
      *     'message' => 'Payment received for order #12345',
      *     'transport' => 'email'
@@ -79,14 +78,13 @@ class Chimes
      *
      * @example Lookup a chime
      * ```php
-     * $result = $client->chimes->lookup(
+     * $chime = $client->chimes->lookup(
      *     'chm_abc123xyz789'
      * );
      *
-     * $chime = $result->data['chime'];
-     * echo "Recipient: {$chime['recipient']}\n";
-     * echo "Status: {$chime['status']}\n";
-     * echo "Sent at: {$chime['sent_at']}\n";
+     * echo "Recipient type: {$chime->recipient->type}\n";
+     * echo "Status: {$chime->transmission?->status}\n";
+     * echo "Sent at: {$chime->transmission?->sentAt}\n";
      * ```
      *
      * @see https://studio.inttegro.com/chimes for chime overview
@@ -119,16 +117,15 @@ class Chimes
      *
      * @example Schedule SMS for tomorrow
      * ```php
-     * $result = $client->chimes->schedule([
+     * $schedule = $client->chimes->schedule([
      *     'recipients' => ['+233541234567', 'user@example.com'],
      *     'full_message' => 'Your subscription renews tomorrow',
      *     'send_after' => '2025-12-21T09:00:00Z',
      *     'sender_id' => 'YourBrand'
      * ]);
      *
-     * $schedule = $result->data['scheduled_chime'];
-     * echo "Chime scheduled: {$schedule['id']}\n";
-     * echo "Will send at: {$schedule['send_after']}\n";
+     * echo "Chime scheduled: {$schedule->id}\n";
+     * echo "Will send at: {$schedule->sendAfter}\n";
      * ```
      *
      * @see https://studio.inttegro.com/send-scheduled-notifications for scheduling guide

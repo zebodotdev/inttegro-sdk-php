@@ -38,7 +38,7 @@ class PaymentMethods
      *
      * @example Tokenize mobile money wallet
      * ```php
-     * $result = $client->paymentMethods->tokenize([
+     * $paymentMethod = $client->paymentMethods->tokenize([
      *     'customer_id' => 'cu_abc123',
      *     'payment_method_data' => [
      *         'type' => 'mobile_money',
@@ -50,9 +50,8 @@ class PaymentMethods
      *     'verify_immediately' => true
      * ]);
      *
-     * $pm = $result->data['payment_method'];
-     * echo "Payment method saved: {$pm['id']}\n";
-     * echo "Verification status: {$pm['verification']['status']}\n";
+     * echo "Payment method saved: {$paymentMethod->id}\n";
+     * echo "Verification status: {$paymentMethod->verification?->status}\n";
      * ```
      *
      * @see https://studio.inttegro.com/charge-repeat-customers for saved payment method guide
@@ -76,12 +75,11 @@ class PaymentMethods
      *
      * @example Start payment method verification
      * ```php
-     * $result = $client->paymentMethods->verify(
+     * $verification = $client->paymentMethods->verify(
      *     'pm_xyz789abc'
      * );
      *
-     * $pm = $result->data['payment_method'];
-     * if ($pm['verification']['status'] === 'pending') {
+     * if ($verification->status === 'pending') {
      *     echo "OTP sent. Collect code from customer.\n";
      * }
      * ```
@@ -110,13 +108,12 @@ class PaymentMethods
      *
      * @example Confirm verification with OTP
      * ```php
-     * $result = $client->paymentMethods->confirmVerification([
+     * $paymentMethod = $client->paymentMethods->confirmVerification([
      *     'payment_method_id' => 'pm_xyz789abc',
      *     'token' => '123456'
      * ]);
      *
-     * $pm = $result->data['payment_method'];
-     * if ($pm['verification']['status'] === 'verified') {
+     * if ($paymentMethod->verification?->status === 'verified') {
      *     echo "Payment method verified! Can now charge without OTP.\n";
      * }
      * ```
@@ -141,14 +138,13 @@ class PaymentMethods
      *
      * @example Lookup a payment method
      * ```php
-     * $result = $client->paymentMethods->lookup(
+     * $paymentMethod = $client->paymentMethods->lookup(
      *     'pm_xyz789abc'
      * );
      *
-     * $pm = $result->data['payment_method'];
-     * echo "Type: {$pm['type']}\n";
-     * echo "Customer: {$pm['customer_id']}\n";
-     * echo "Verified: " . ($pm['verification']['status'] === 'verified' ? 'yes' : 'no') . "\n";
+     * echo "Type: {$paymentMethod->type}\n";
+     * echo "Customer: {$paymentMethod->customerId}\n";
+     * echo "Verified: " . ($paymentMethod->verification?->status === 'verified' ? 'yes' : 'no') . "\n";
      * ```
      *
      * @see https://studio.inttegro.com/payment-methods for payment method overview
@@ -236,9 +232,7 @@ class PaymentMethods
      *
      * @example Get payment method settings
      * ```php
-     * $result = $client->paymentMethods->settings();
-     *
-     * $settings = $result->data['settings'];
+     * $settings = $client->paymentMethods->settings();
      * // View supported payment types and configuration
      * ```
      *

@@ -41,16 +41,14 @@ class Spec
      *
      * @example Get country specifications
      * ```php
-     * $result = $client->spec->countries();
+     * $specifications = $client->spec->countries();
+     * foreach ($specifications->countries as $country) {
+     *     echo "{$country->name} ({$country->code}):\n";
+     *     echo "  Currencies: " . implode(', ', $country->currencies) . "\n";
+     *     echo "  Payment methods: " . implode(', ', $country->paymentMethods) . "\n";
      *
-     * $countries = $result->data['countries'];
-     * foreach ($countries as $country) {
-     *     echo "{$country['name']} ({$country['code']}):\n";
-     *     echo "  Currencies: " . implode(', ', $country['currencies']) . "\n";
-     *     echo "  Payment methods: " . implode(', ', $country['payment_methods']) . "\n";
-     *
-     *     if (isset($country['mobile_money_issuers'])) {
-     *         echo "  Mobile money: " . implode(', ', $country['mobile_money_issuers']) . "\n";
+     *     if ($country->mobileMoneyIssuers !== null) {
+     *         echo "  Mobile money: " . implode(', ', $country->mobileMoneyIssuers) . "\n";
      *     }
      * }
      * ```

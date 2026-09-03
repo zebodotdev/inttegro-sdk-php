@@ -6,7 +6,7 @@ The official PHP client for building server-side Inttegro integrations.
 
 > **Fastest, most modern path:** connect an agent to [Inttegro MCP](https://studio.inttegro.com/inttegro-mcp) at `https://mcp.inttegro.com`, then ask it to run `design_integration`. It will produce an implementation and test plan for your application. Use this SDK when you are ready to connect that plan to your PHP service.
 
-All official Inttegro SDKs expose the same API capabilities. This package adds PHP-native domain models, flexible response access, and enum support.
+All official Inttegro SDKs expose the same API capabilities. This package adds PHP-native domain values and enum support.
 
 ## Install
 
@@ -81,8 +81,8 @@ The SDK covers orders and checkout, customers, products and prices, purchase int
 PHP-specific features:
 
 - Native array request payloads and backed enums for public API values.
-- Typed domain models from order operations, with transport envelopes decoded internally.
-- Flexible response objects for other resources, with property and `ArrayAccess` syntax, `toArray()`, and JSON serialization.
+- Immutable typed domain values returned directly by every resource operation, with transport envelopes decoded internally.
+- Property and `ArrayAccess` syntax, `toArray()`, and JSON serialization on domain values.
 - No production Composer dependencies beyond PHP itself; HTTP uses cURL.
 - Configurable timeout, base URL, and injectable adapter for tests.
 - Structured authentication, rate-limit, network, timeout, and API exceptions.
@@ -95,7 +95,7 @@ Packagist versions resolve to immutable Git commit references. The corresponding
 
 ```bash
 sha256sum --check SHA256SUMS
-gh attestation verify inttegro-sdk-php-2.0.0.tar.gz \
+gh attestation verify inttegro-sdk-php-3.0.1.tar.gz \
   --repo zebodotdev/inttegro-sdk-php
 ```
 

@@ -35,13 +35,12 @@ class Payouts
      *
      * @example Set payout destinations
      * ```php
-     * $result = $client->payouts->setDestinations([
+     * $settings = $client->payouts->setDestinations([
      *     'ghs' => 'fa_mtnmomo_account',
      *     'usd' => 'fa_bank_account'
      * ]);
      *
-     * $settings = $result->data['settings'];
-     * foreach ($settings['destinations'] as $currency => $accountId) {
+     * foreach ($settings->destinations ?? [] as $currency => $accountId) {
      *     echo "Payouts in $currency go to $accountId\n";
      * }
      * ```
@@ -63,11 +62,9 @@ class Payouts
      *
      * @example Get payout settings
      * ```php
-     * $result = $client->payouts->settings();
-     *
-     * $settings = $result->data['settings'];
-     * echo "Schedule: {$settings['schedule']['name']}\n";
-     * echo "Type: {$settings['schedule']['type']}\n";
+     * $settings = $client->payouts->settings();
+     * echo "Schedule: {$settings->schedule?->name}\n";
+     * echo "Type: {$settings->schedule?->type}\n";
      * ```
      *
      * @see https://studio.inttegro.com/payouts for payout overview
@@ -88,10 +85,8 @@ class Payouts
      *
      * @example Disable automatic payouts
      * ```php
-     * $result = $client->payouts->disableAutomatic();
-     *
-     * $settings = $result->data['settings'];
-     * if ($settings['schedule']['type'] === 'manual') {
+     * $settings = $client->payouts->disableAutomatic();
+     * if ($settings->schedule?->type === 'manual') {
      *     echo "Automatic payouts disabled. You now control payout timing.\n";
      * }
      * ```
@@ -165,16 +160,15 @@ class Payouts
      *
      * @example Get recent payouts
      * ```php
-     * $result = $client->payouts->page([
+     * $page = $client->payouts->page([
      *     'page_number' => 1,
      *     'page_size' => 20
      * ]);
      *
-     * $page = $result->data['page'];
-     * echo "Page {$page['number']} contains {$page['size']} payouts\n";
+     * echo "Page {$page->number} contains {$page->size} payouts\n";
      *
-     * foreach ($page['payouts'] as $payout) {
-     *     echo "Payout {$payout['id']}: {$payout['amount']['value']} {$payout['amount']['currency']}\n";
+     * foreach ($page->payouts ?? [] as $payout) {
+     *     echo "Payout {$payout->id}: {$payout->amount?->value} {$payout->amount?->currency}\n";
      * }
      * ```
      *

@@ -62,7 +62,7 @@ class FinancialAccounts
      *
      * @example Create mobile money account for payouts
      * ```php
-     * $result = $client->financialAccounts->create([
+     * $account = $client->financialAccounts->create([
      *     'label' => 'MTN Mobile Money',
      *     'type' => 'wallet',
      *     'reference' => 'mtn-primary-2025',
@@ -80,9 +80,8 @@ class FinancialAccounts
      *     ]
      * ]);
      *
-     * $account = $result->data['financial_account'];
-     * echo "Account created: {$account['id']}\n";
-     * echo "Status: {$account['status']}\n";
+     * echo "Account created: {$account->id}\n";
+     * echo "Status: {$account->status}\n";
      * ```
      *
      * @see https://studio.inttegro.com/set-up-financial-account for account setup guide
@@ -105,15 +104,14 @@ class FinancialAccounts
      *
      * @example Lookup a financial account
      * ```php
-     * $result = $client->financialAccounts->lookup(
+     * $account = $client->financialAccounts->lookup(
      *     'fa_abc123xyz'
      * );
      *
-     * $account = $result->data['financial_account'];
-     * echo "Label: {$account['label']}\n";
-     * echo "Type: {$account['type']}\n";
-     * echo "Currency: {$account['currency']}\n";
-     * echo "Status: {$account['status']}\n";
+     * echo "Label: {$account->label}\n";
+     * echo "Type: {$account->type}\n";
+     * echo "Currency: {$account->currency}\n";
+     * echo "Status: {$account->status}\n";
      * ```
      *
      * @see https://studio.inttegro.com/financial-accounts for financial account overview
@@ -147,7 +145,7 @@ class FinancialAccounts
      *
      * @example Connect a mobile money account
      * ```php
-     * $result = $client->financialAccounts->connect([
+     * $account = $client->financialAccounts->connect([
      *     'label' => 'MTN Mobile Money',
      *     'type' => 'wallet',
      *     'reference' => 'mtn-primary-2025',
@@ -162,7 +160,6 @@ class FinancialAccounts
      *     'push_configuration' => ['enabled' => true]
      * ]);
      *
-     * $account = $result->data['financial_account'];
      * echo "Account connected and ready for payouts\n";
      * ```
      *
@@ -215,11 +212,10 @@ class FinancialAccounts
      *
      * @example Get financial accounts
      * ```php
-     * $result = $client->financialAccounts->page();
+     * $page = $client->financialAccounts->page();
      *
-     * $accounts = $result->data['financial_accounts'] ?? [];
-     * foreach ($accounts as $account) {
-     *     echo "{$account['label']} ({$account['type']}): {$account['currency']}\n";
+     * foreach ($page->accounts as $account) {
+     *     echo "{$account->label} ({$account->type}): {$account->currency}\n";
      * }
      * ```
      *
@@ -246,12 +242,11 @@ class FinancialAccounts
      *
      * @example Verify a financial account
      * ```php
-     * $result = $client->financialAccounts->verify([
+     * $account = $client->financialAccounts->verify([
      *     'account_id' => 'fa_abc123xyz'
      * ]);
      *
-     * $account = $result->data['financial_account'];
-     * if ($account['status'] === 'verified') {
+     * if ($account->status === 'verified') {
      *     echo "Account verified and ready for use\n";
      * }
      * ```

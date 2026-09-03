@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [3.0.1] - 2026-09-03
+
+- Corrected the user agent, README, and resource examples to show direct domain return values.
+
 ## [3.0.0] - 2026-09-03
 
 - Breaking: resource methods now return immutable, typed domain value objects and pages instead of response wrappers and arrays.

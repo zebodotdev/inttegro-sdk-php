@@ -41,7 +41,7 @@ class Otp
      *
      * @example Initialize OTP session
      * ```php
-     * $result = $client->otp->initiate([
+     * $transaction = $client->otp->initiate([
      *     'recipient' => '+233541234567',
      *     'sender' => 'Acme',
      *     'service_name' => 'Acme Bank',
@@ -49,9 +49,8 @@ class Otp
      *     'purpose' => 'payment_confirmation'
      * ]);
      *
-     * $txn = $result->data['transaction'];
-     * echo "OTP sent. Transaction ID: {$txn['id']}\n";
-     * echo "Expires at: {$txn['expires_at']}\n";
+     * echo "OTP sent. Transaction ID: {$transaction->id}\n";
+     * echo "Expires at: {$transaction->expiresAt}\n";
      * ```
      *
      * @see https://studio.inttegro.com/otp for OTP implementation guide
@@ -77,17 +76,16 @@ class Otp
      *
      * @example Verify OTP code
      * ```php
-     * $result = $client->otp->verify([
+     * $verification = $client->otp->verify([
      *     'transaction_id' => 'ot_abc123',
      *     'recipient' => '+233541234567',
      *     'token' => '123456'
      * ]);
      *
-     * $txn = $result->data['transaction'];
-     * if ($txn['status'] === 'verified') {
+     * if ($verification->transaction->status === 'verified') {
      *     echo "OTP verified successfully!\n";
      * } else {
-     *     echo "Invalid code. Status: {$txn['status']}\n";
+     *     echo "Invalid code. Status: {$verification->transaction->status}\n";
      * }
      * ```
      *
@@ -112,13 +110,12 @@ class Otp
      *
      * @example Lookup OTP session
      * ```php
-     * $result = $client->otp->lookup([
+     * $transaction = $client->otp->lookup([
      *     'transaction_id' => 'ot_abc123'
      * ]);
      *
-     * $txn = $result->data['transaction'];
-     * echo "Status: {$txn['status']}\n";
-     * echo "Expires: {$txn['expires_at']}\n";
+     * echo "Status: {$transaction->status}\n";
+     * echo "Expires: {$transaction->expiresAt}\n";
      * ```
      *
      * @see https://studio.inttegro.com/otp for OTP overview
