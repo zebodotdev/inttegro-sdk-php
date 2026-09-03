@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [5.1.0] - 2026-09-03
+
+- Added focused `Inttegro\Wallets` and `Inttegro\BankAccounts` namespaces for financial-account variants.
+- Preserved the generated root value types as compatibility aliases.
+
 ## [5.0.0] - 2026-09-03
 
 - Breaking: removed the generic `Inttegro\Enums` namespace and exposed native backed enums directly from `Inttegro`.

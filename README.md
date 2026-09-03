@@ -97,7 +97,7 @@ Packagist versions resolve to immutable Git commit references. The corresponding
 
 ```bash
 sha256sum --check SHA256SUMS
-gh attestation verify inttegro-sdk-php-5.0.0.tar.gz \
+gh attestation verify inttegro-sdk-php-5.1.0.tar.gz \
   --repo zebodotdev/inttegro-sdk-php
 ```
 

@@ -15,7 +15,9 @@
     "files": [
       "src/Inttegro/Errors.php",
       "src/Inttegro/Enums.php",
-      "src/Inttegro/Domain.php"
+      "src/Inttegro/Domain.php",
+      "src/Inttegro/Wallets.php",
+      "src/Inttegro/BankAccounts.php"
     ]
   },
   "require": {

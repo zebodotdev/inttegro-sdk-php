@@ -21,6 +21,10 @@ use Inttegro\Payment;
 use Inttegro\PaymentAttempt;
 use Inttegro\PaymentMethodSnapshot;
 use Inttegro\Refund;
+use Inttegro\BankAccounts\BankAccount;
+use Inttegro\BankAccounts\BankAccountType;
+use Inttegro\Wallets\Wallet;
+use Inttegro\Wallets\WalletType;
 
 final class ClientTest extends TestCase
 {
@@ -63,6 +67,21 @@ final class ClientTest extends TestCase
         $this->assertSame(Currency::GHS, $catalogPrice->nominal->currency);
         $this->assertSame('prod_123', $catalogPrice->productId);
         $this->assertSame(Currency::EUR, $inlinePrice->currency);
+    }
+
+    public function test_financial_account_variants_have_focused_namespaces(): void
+    {
+        $wallet = Wallet::fromArray([
+            'id' => 'wallet_1',
+            'type' => WalletType::MobileMoney->value,
+            'mobile_money' => ['account_number' => '233200000000', 'network' => 'mtn'],
+        ]);
+        $bankAccount = BankAccount::fromArray([
+            'type' => BankAccountType::GhanaBankAccount->value,
+        ]);
+
+        $this->assertSame('mtn', $wallet->mobileMoney?->network);
+        $this->assertSame('ghana_bank_account', $bankAccount->type);
     }
 
     public function test_balance_transactions_expose_matching_semantic_sources(): void

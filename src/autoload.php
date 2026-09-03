@@ -19,3 +19,5 @@ spl_autoload_register(function ($class) {
 require_once __DIR__ . '/Inttegro/Errors.php';
 require_once __DIR__ . '/Inttegro/Enums.php';
 require_once __DIR__ . '/Inttegro/Domain.php';
+require_once __DIR__ . '/Inttegro/Wallets.php';
+require_once __DIR__ . '/Inttegro/BankAccounts.php';
