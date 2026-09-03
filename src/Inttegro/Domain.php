@@ -3,6 +3,8 @@
 namespace Inttegro;
 
 use ArrayAccess;
+use BackedEnum;
+use Inttegro\Money\Amount;
 use JsonSerializable;
 use LogicException;
 
@@ -73,6 +75,9 @@ abstract class DomainValue implements ArrayAccess, JsonSerializable
     {
         if ($value instanceof self) {
             return $value->toArray();
+        }
+        if ($value instanceof BackedEnum) {
+            return $value->value;
         }
         if (is_array($value)) {
             return array_map([self::class, 'export'], $value);
@@ -1167,13 +1172,13 @@ final class CustomerAddress extends DomainValue
 final class CustomerBalanceValue extends DomainValue
 {
     public readonly string $asOf;
-    public readonly Money $available;
+    public readonly Amount $available;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->asOf = ValueHydrator::string($data['as_of'] ?? null, false);
-        $this->available = ValueHydrator::object($data['available'] ?? null, [Money::class], false);
+        $this->available = ValueHydrator::object($data['available'] ?? null, [Amount::class], false);
     }
 
     /** @param array<string, mixed> $data */
@@ -2376,25 +2381,6 @@ final class MessageTemplatesPage extends DomainValue
     }
 }
 
-final class Money extends DomainValue
-{
-    public readonly string $currency;
-    public readonly int $value;
-
-    /** @param array<string, mixed> $data */
-    public function __construct(array $data)
-    {
-        $this->currency = ValueHydrator::string($data['currency'] ?? null, false);
-        $this->value = ValueHydrator::int($data['value'] ?? null, false);
-    }
-
-    /** @param array<string, mixed> $data */
-    public static function fromArray(array $data): static
-    {
-        return new static($data);
-    }
-}
-
 final class OTPTransaction extends DomainValue
 {
     public readonly ?string $cancelReason;
@@ -2535,7 +2521,7 @@ final class Order extends DomainValue
     public readonly string $status;
     public readonly ?string $sealedAt;
     public readonly ?OrderLineItemGroup $lineItemGroup;
-    public readonly ?OrderPayment $payment;
+    public readonly ?Payment $payment;
     public readonly ?string $paidAt;
     public readonly ?string $paymentDueAt;
     /** @var array<string, mixed>|null */
@@ -2564,7 +2550,7 @@ final class Order extends DomainValue
         $this->status = ValueHydrator::string($data['status'] ?? null, false);
         $this->sealedAt = ValueHydrator::string($data['sealed_at'] ?? null, true);
         $this->lineItemGroup = ValueHydrator::object($data['line_item_group'] ?? null, [OrderLineItemGroup::class], true);
-        $this->payment = ValueHydrator::object($data['payment'] ?? null, [OrderPayment::class], true);
+        $this->payment = ValueHydrator::object($data['payment'] ?? null, [Payment::class], true);
         $this->paidAt = ValueHydrator::string($data['paid_at'] ?? null, true);
         $this->paymentDueAt = ValueHydrator::string($data['payment_due_at'] ?? null, true);
         $this->payoutSettings = ValueHydrator::array($data['payout_settings'] ?? null, true);
@@ -2810,7 +2796,7 @@ final class OrderFeeLineItemFee extends DomainValue
     public readonly string $id;
     public readonly ?string $description;
     public readonly ?string $taxCode;
-    public readonly Money $amount;
+    public readonly Amount $amount;
     public readonly string $label;
 
     /** @param array<string, mixed> $data */
@@ -2819,7 +2805,7 @@ final class OrderFeeLineItemFee extends DomainValue
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->description = ValueHydrator::string($data['description'] ?? null, true);
         $this->taxCode = ValueHydrator::string($data['tax_code'] ?? null, true);
-        $this->amount = ValueHydrator::object($data['amount'] ?? null, [Money::class], false);
+        $this->amount = ValueHydrator::object($data['amount'] ?? null, [Amount::class], false);
         $this->label = ValueHydrator::string($data['label'] ?? null, false);
     }
 
@@ -2874,13 +2860,13 @@ final class OrderLineItemGroup extends DomainValue
 {
     /** @var list<OrderProductLineItem|OrderFeeLineItem|OrderShippingLineItem> */
     public readonly array $lineItems;
-    public readonly Money $total;
+    public readonly Amount $total;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->lineItems = ValueHydrator::objects($data['line_items'] ?? null, [OrderProductLineItem::class, OrderFeeLineItem::class, OrderShippingLineItem::class]);
-        $this->total = ValueHydrator::object($data['total'] ?? null, [Money::class], false);
+        $this->total = ValueHydrator::object($data['total'] ?? null, [Amount::class], false);
     }
 
     /** @param array<string, mixed> $data */
@@ -2912,15 +2898,15 @@ final class OrderPage extends DomainValue
     }
 }
 
-final class OrderPayment extends DomainValue
+final class Payment extends DomainValue
 {
     public readonly string $id;
     public readonly string $status;
     public readonly string $statementDescriptor;
-    public readonly Money $amount;
+    public readonly Amount $amount;
     public readonly ?BalanceTransaction $balanceTransaction;
-    public readonly ?OrderPaymentMethod $paymentMethod;
-    public readonly ?OrderPaymentLatestAttempt $latestAttempt;
+    public readonly ?PaymentMethodSnapshot $paymentMethod;
+    public readonly ?PaymentAttempt $latestAttempt;
     public readonly ?PaymentNextAction $nextAction;
     public readonly string $initiatedAt;
     public readonly ?string $executedAt;
@@ -2932,7 +2918,7 @@ final class OrderPayment extends DomainValue
     public readonly ?bool $paidOffline;
     /** @var list<string>|null */
     public readonly ?array $paymentMethodTypes;
-    public readonly ?OrderPaymentPayoutConfiguration $payoutConfiguration;
+    public readonly ?PaymentPayoutConfiguration $payoutConfiguration;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -2940,10 +2926,10 @@ final class OrderPayment extends DomainValue
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->status = ValueHydrator::string($data['status'] ?? null, false);
         $this->statementDescriptor = ValueHydrator::string($data['statement_descriptor'] ?? null, false);
-        $this->amount = ValueHydrator::object($data['amount'] ?? null, [Money::class], false);
+        $this->amount = ValueHydrator::object($data['amount'] ?? null, [Amount::class], false);
         $this->balanceTransaction = ValueHydrator::object($data['balance_transaction'] ?? null, [BalanceTransaction::class], true);
-        $this->paymentMethod = ValueHydrator::object($data['payment_method'] ?? null, [OrderPaymentMethod::class], true);
-        $this->latestAttempt = ValueHydrator::object($data['latest_attempt'] ?? null, [OrderPaymentLatestAttempt::class], true);
+        $this->paymentMethod = ValueHydrator::object($data['payment_method'] ?? null, [PaymentMethodSnapshot::class], true);
+        $this->latestAttempt = ValueHydrator::object($data['latest_attempt'] ?? null, [PaymentAttempt::class], true);
         $this->nextAction = ValueHydrator::object($data['next_action'] ?? null, [PaymentNextAction::class], true);
         $this->initiatedAt = ValueHydrator::string($data['initiated_at'] ?? null, false);
         $this->executedAt = ValueHydrator::string($data['executed_at'] ?? null, true);
@@ -2954,7 +2940,7 @@ final class OrderPayment extends DomainValue
         $this->failedAt = ValueHydrator::string($data['failed_at'] ?? null, true);
         $this->paidOffline = ValueHydrator::bool($data['paid_offline'] ?? null, true);
         $this->paymentMethodTypes = ValueHydrator::array($data['payment_method_types'] ?? null, true);
-        $this->payoutConfiguration = ValueHydrator::object($data['payout_configuration'] ?? null, [OrderPaymentPayoutConfiguration::class], true);
+        $this->payoutConfiguration = ValueHydrator::object($data['payout_configuration'] ?? null, [PaymentPayoutConfiguration::class], true);
     }
 
     /** @param array<string, mixed> $data */
@@ -2964,7 +2950,7 @@ final class OrderPayment extends DomainValue
     }
 }
 
-final class OrderPaymentLatestAttempt extends DomainValue
+final class PaymentAttempt extends DomainValue
 {
     public readonly ?string $paymentMethodType;
     public readonly ?string $paymentMethodId;
@@ -2991,16 +2977,16 @@ final class OrderPaymentLatestAttempt extends DomainValue
     }
 }
 
-final class OrderPaymentMethod extends DomainValue
+final class PaymentMethodSnapshot extends DomainValue
 {
     public readonly string $id;
-    public readonly ?OrderPaymentMethodBankAccount $bankAccount;
+    public readonly ?PaymentMethodSnapshotBankAccount $bankAccount;
     /** @var array<string, mixed>|null */
     public readonly ?array $card;
     public readonly string $createdAt;
     public readonly string $customerId;
-    public readonly ?OrderPaymentMethodMobileMoney $mobileMoney;
-    public readonly ?OrderPaymentMethodOwner $owner;
+    public readonly ?PaymentMethodSnapshotMobileMoney $mobileMoney;
+    public readonly ?PaymentMethodSnapshotOwner $owner;
     public readonly string $type;
     public readonly bool $verified;
     public readonly ?string $verifiedAt;
@@ -3009,12 +2995,12 @@ final class OrderPaymentMethod extends DomainValue
     public function __construct(array $data)
     {
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
-        $this->bankAccount = ValueHydrator::object($data['bank_account'] ?? null, [OrderPaymentMethodBankAccount::class], true);
+        $this->bankAccount = ValueHydrator::object($data['bank_account'] ?? null, [PaymentMethodSnapshotBankAccount::class], true);
         $this->card = ValueHydrator::array($data['card'] ?? null, true);
         $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
         $this->customerId = ValueHydrator::string($data['customer_id'] ?? null, false);
-        $this->mobileMoney = ValueHydrator::object($data['mobile_money'] ?? null, [OrderPaymentMethodMobileMoney::class], true);
-        $this->owner = ValueHydrator::object($data['owner'] ?? null, [OrderPaymentMethodOwner::class], true);
+        $this->mobileMoney = ValueHydrator::object($data['mobile_money'] ?? null, [PaymentMethodSnapshotMobileMoney::class], true);
+        $this->owner = ValueHydrator::object($data['owner'] ?? null, [PaymentMethodSnapshotOwner::class], true);
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
         $this->verified = ValueHydrator::bool($data['verified'] ?? null, false);
         $this->verifiedAt = ValueHydrator::string($data['verified_at'] ?? null, true);
@@ -3027,16 +3013,16 @@ final class OrderPaymentMethod extends DomainValue
     }
 }
 
-final class OrderPaymentMethodBankAccount extends DomainValue
+final class PaymentMethodSnapshotBankAccount extends DomainValue
 {
     public readonly string $type;
-    public readonly ?OrderPaymentMethodBankAccountGhanaBankAccount $ghanaBankAccount;
+    public readonly ?PaymentMethodSnapshotGhanaBankAccount $ghanaBankAccount;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
-        $this->ghanaBankAccount = ValueHydrator::object($data['ghana_bank_account'] ?? null, [OrderPaymentMethodBankAccountGhanaBankAccount::class], true);
+        $this->ghanaBankAccount = ValueHydrator::object($data['ghana_bank_account'] ?? null, [PaymentMethodSnapshotGhanaBankAccount::class], true);
     }
 
     /** @param array<string, mixed> $data */
@@ -3046,7 +3032,7 @@ final class OrderPaymentMethodBankAccount extends DomainValue
     }
 }
 
-final class OrderPaymentMethodBankAccountGhanaBankAccount extends DomainValue
+final class PaymentMethodSnapshotGhanaBankAccount extends DomainValue
 {
     public readonly string $accountNumber;
     public readonly ?string $branch;
@@ -3071,7 +3057,7 @@ final class OrderPaymentMethodBankAccountGhanaBankAccount extends DomainValue
     }
 }
 
-final class OrderPaymentMethodMobileMoney extends DomainValue
+final class PaymentMethodSnapshotMobileMoney extends DomainValue
 {
     public readonly string $network;
     public readonly string $accountNumber;
@@ -3092,7 +3078,7 @@ final class OrderPaymentMethodMobileMoney extends DomainValue
     }
 }
 
-final class OrderPaymentMethodOwner extends DomainValue
+final class PaymentMethodSnapshotOwner extends DomainValue
 {
     public readonly string $name;
     public readonly ?OrderAddress $address;
@@ -3111,16 +3097,16 @@ final class OrderPaymentMethodOwner extends DomainValue
     }
 }
 
-final class OrderPaymentPayoutConfiguration extends DomainValue
+final class PaymentPayoutConfiguration extends DomainValue
 {
     public readonly ?bool $enableFx;
-    public readonly ?OrderPaymentPayoutConfigurationDestination $destination;
+    public readonly ?PaymentPayoutConfigurationDestination $destination;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->enableFx = ValueHydrator::bool($data['enable_fx'] ?? null, true);
-        $this->destination = ValueHydrator::object($data['destination'] ?? null, [OrderPaymentPayoutConfigurationDestination::class], true);
+        $this->destination = ValueHydrator::object($data['destination'] ?? null, [PaymentPayoutConfigurationDestination::class], true);
     }
 
     /** @param array<string, mixed> $data */
@@ -3130,7 +3116,7 @@ final class OrderPaymentPayoutConfiguration extends DomainValue
     }
 }
 
-final class OrderPaymentPayoutConfigurationDestination extends DomainValue
+final class PaymentPayoutConfigurationDestination extends DomainValue
 {
     public readonly ?string $financialAccountId;
 
@@ -3179,7 +3165,7 @@ final class OrderProductLineItemProduct extends DomainValue
     public readonly string $name;
     public readonly ?string $category;
     public readonly ?string $type;
-    public readonly Money $price;
+    public readonly Price $price;
     public readonly int $quantity;
 
     /** @param array<string, mixed> $data */
@@ -3195,7 +3181,7 @@ final class OrderProductLineItemProduct extends DomainValue
         $this->name = ValueHydrator::string($data['name'] ?? null, false);
         $this->category = ValueHydrator::string($data['category'] ?? null, true);
         $this->type = ValueHydrator::string($data['type'] ?? null, true);
-        $this->price = ValueHydrator::object($data['price'] ?? null, [Money::class], false);
+        $this->price = ValueHydrator::object($data['price'] ?? null, [Price::class], false);
         $this->quantity = ValueHydrator::int($data['quantity'] ?? null, false);
     }
 
@@ -3230,7 +3216,7 @@ final class OrderShippingLineItemShipping extends DomainValue
     public readonly string $id;
     public readonly ?string $taxCode;
     public readonly ?string $label;
-    public readonly Money $fee;
+    public readonly Amount $fee;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -3238,7 +3224,7 @@ final class OrderShippingLineItemShipping extends DomainValue
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->taxCode = ValueHydrator::string($data['tax_code'] ?? null, true);
         $this->label = ValueHydrator::string($data['label'] ?? null, true);
-        $this->fee = ValueHydrator::object($data['fee'] ?? null, [Money::class], false);
+        $this->fee = ValueHydrator::object($data['fee'] ?? null, [Amount::class], false);
     }
 
     /** @param array<string, mixed> $data */
@@ -3752,7 +3738,7 @@ final class PaymentNextActionRedirectLatestVisit extends DomainValue
 
 final class Payout extends DomainValue
 {
-    public readonly ?Money $amount;
+    public readonly ?Amount $amount;
     /** @var list<string>|null */
     public readonly ?array $balanceTransactions;
     public readonly ?string $canceledAt;
@@ -3767,7 +3753,7 @@ final class Payout extends DomainValue
     public readonly string $id;
     public readonly string $initiatedAt;
     public readonly ?string $initiatedBy;
-    public readonly Money $maxAmount;
+    public readonly Amount $maxAmount;
     public readonly ?string $reference;
     public readonly ?string $scheduleId;
     public readonly ?string $scheduledAt;
@@ -3780,7 +3766,7 @@ final class Payout extends DomainValue
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->amount = ValueHydrator::object($data['amount'] ?? null, [Money::class], true);
+        $this->amount = ValueHydrator::object($data['amount'] ?? null, [Amount::class], true);
         $this->balanceTransactions = ValueHydrator::array($data['balance_transactions'] ?? null, true);
         $this->canceledAt = ValueHydrator::string($data['canceled_at'] ?? null, true);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
@@ -3793,7 +3779,7 @@ final class Payout extends DomainValue
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->initiatedAt = ValueHydrator::string($data['initiated_at'] ?? null, false);
         $this->initiatedBy = ValueHydrator::string($data['initiated_by'] ?? null, true);
-        $this->maxAmount = ValueHydrator::object($data['max_amount'] ?? null, [Money::class], false);
+        $this->maxAmount = ValueHydrator::object($data['max_amount'] ?? null, [Amount::class], false);
         $this->reference = ValueHydrator::string($data['reference'] ?? null, true);
         $this->scheduleId = ValueHydrator::string($data['schedule_id'] ?? null, true);
         $this->scheduledAt = ValueHydrator::string($data['scheduled_at'] ?? null, true);
@@ -4000,13 +3986,13 @@ final class PayoutSettingsMutationScheduleSpec extends DomainValue
     }
 }
 
-final class Price extends DomainValue
+final class CatalogPrice extends DomainValue
 {
     public readonly string $id;
     public readonly ?string $label;
     public readonly ?string $about;
     public readonly bool $active;
-    public readonly PriceNominal $nominal;
+    public readonly Amount $nominal;
     public readonly ?PriceEmbeddedProduct $product;
     public readonly string $createdAt;
     public readonly ?string $updatedAt;
@@ -4019,7 +4005,7 @@ final class Price extends DomainValue
         $this->label = ValueHydrator::string($data['label'] ?? null, true);
         $this->about = ValueHydrator::string($data['about'] ?? null, true);
         $this->active = ValueHydrator::bool($data['active'] ?? null, false);
-        $this->nominal = ValueHydrator::object($data['nominal'] ?? null, [PriceNominal::class], false);
+        $this->nominal = ValueHydrator::object($data['nominal'] ?? null, [Amount::class], false);
         $this->product = ValueHydrator::object($data['product'] ?? null, [PriceEmbeddedProduct::class], true);
         $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
         $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, true);
@@ -4110,30 +4096,11 @@ final class PriceEmbeddedProductAttributesItem extends DomainValue
     }
 }
 
-final class PriceNominal extends DomainValue
-{
-    public readonly string $currency;
-    public readonly int $value;
-
-    /** @param array<string, mixed> $data */
-    public function __construct(array $data)
-    {
-        $this->currency = ValueHydrator::string($data['currency'] ?? null, false);
-        $this->value = ValueHydrator::int($data['value'] ?? null, false);
-    }
-
-    /** @param array<string, mixed> $data */
-    public static function fromArray(array $data): static
-    {
-        return new static($data);
-    }
-}
-
 final class PricePage extends DomainValue
 {
     public readonly ?int $number;
     public readonly ?int $size;
-    /** @var list<Price>|null */
+    /** @var list<CatalogPrice>|null */
     public readonly ?array $prices;
 
     /** @param array<string, mixed> $data */
@@ -4141,7 +4108,7 @@ final class PricePage extends DomainValue
     {
         $this->number = ValueHydrator::int($data['number'] ?? null, true);
         $this->size = ValueHydrator::int($data['size'] ?? null, true);
-        $this->prices = ValueHydrator::objects($data['prices'] ?? null, [Price::class]);
+        $this->prices = ValueHydrator::objects($data['prices'] ?? null, [CatalogPrice::class]);
     }
 
     /** @param array<string, mixed> $data */
@@ -4380,64 +4347,12 @@ final class ProductPage extends DomainValue
     }
 }
 
-final class ProductPriceNominal extends DomainValue
-{
-    public readonly string $id;
-    public readonly ?string $productId;
-    public readonly ?string $label;
-    public readonly ?string $about;
-    public readonly bool $active;
-    public readonly ProductPriceNominalNominal $nominal;
-    public readonly string $createdAt;
-    public readonly ?string $updatedAt;
-    public readonly ?string $archivedAt;
-
-    /** @param array<string, mixed> $data */
-    public function __construct(array $data)
-    {
-        $this->id = ValueHydrator::string($data['id'] ?? null, false);
-        $this->productId = ValueHydrator::string($data['product_id'] ?? null, true);
-        $this->label = ValueHydrator::string($data['label'] ?? null, true);
-        $this->about = ValueHydrator::string($data['about'] ?? null, true);
-        $this->active = ValueHydrator::bool($data['active'] ?? null, false);
-        $this->nominal = ValueHydrator::object($data['nominal'] ?? null, [ProductPriceNominalNominal::class], false);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, true);
-        $this->archivedAt = ValueHydrator::string($data['archived_at'] ?? null, true);
-    }
-
-    /** @param array<string, mixed> $data */
-    public static function fromArray(array $data): static
-    {
-        return new static($data);
-    }
-}
-
-final class ProductPriceNominalNominal extends DomainValue
-{
-    public readonly string $currency;
-    public readonly int $value;
-
-    /** @param array<string, mixed> $data */
-    public function __construct(array $data)
-    {
-        $this->currency = ValueHydrator::string($data['currency'] ?? null, false);
-        $this->value = ValueHydrator::int($data['value'] ?? null, false);
-    }
-
-    /** @param array<string, mixed> $data */
-    public static function fromArray(array $data): static
-    {
-        return new static($data);
-    }
-}
-
 final class ProductPriceSummary extends DomainValue
 {
     public readonly string $id;
     public readonly bool $active;
     public readonly ?string $label;
-    public readonly ProductPriceSummaryNominal $nominal;
+    public readonly Amount $nominal;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -4445,26 +4360,7 @@ final class ProductPriceSummary extends DomainValue
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->active = ValueHydrator::bool($data['active'] ?? null, false);
         $this->label = ValueHydrator::string($data['label'] ?? null, true);
-        $this->nominal = ValueHydrator::object($data['nominal'] ?? null, [ProductPriceSummaryNominal::class], false);
-    }
-
-    /** @param array<string, mixed> $data */
-    public static function fromArray(array $data): static
-    {
-        return new static($data);
-    }
-}
-
-final class ProductPriceSummaryNominal extends DomainValue
-{
-    public readonly string $currency;
-    public readonly int $value;
-
-    /** @param array<string, mixed> $data */
-    public function __construct(array $data)
-    {
-        $this->currency = ValueHydrator::string($data['currency'] ?? null, false);
-        $this->value = ValueHydrator::int($data['value'] ?? null, false);
+        $this->nominal = ValueHydrator::object($data['nominal'] ?? null, [Amount::class], false);
     }
 
     /** @param array<string, mixed> $data */
@@ -4611,31 +4507,12 @@ final class PurchaseIntentMerchant extends DomainValue
     }
 }
 
-final class PurchaseIntentMoney extends DomainValue
-{
-    public readonly string $currency;
-    public readonly int $value;
-
-    /** @param array<string, mixed> $data */
-    public function __construct(array $data)
-    {
-        $this->currency = ValueHydrator::string($data['currency'] ?? null, false);
-        $this->value = ValueHydrator::int($data['value'] ?? null, false);
-    }
-
-    /** @param array<string, mixed> $data */
-    public static function fromArray(array $data): static
-    {
-        return new static($data);
-    }
-}
-
 final class PurchaseIntentOriginalPrice extends DomainValue
 {
     public readonly bool $active;
     public readonly ?string $id;
     public readonly ?string $label;
-    public readonly PurchaseIntentMoney $nominal;
+    public readonly Amount $nominal;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -4643,7 +4520,7 @@ final class PurchaseIntentOriginalPrice extends DomainValue
         $this->active = ValueHydrator::bool($data['active'] ?? null, false);
         $this->id = ValueHydrator::string($data['id'] ?? null, true);
         $this->label = ValueHydrator::string($data['label'] ?? null, true);
-        $this->nominal = ValueHydrator::object($data['nominal'] ?? null, [PurchaseIntentMoney::class], false);
+        $this->nominal = ValueHydrator::object($data['nominal'] ?? null, [Amount::class], false);
     }
 
     /** @param array<string, mixed> $data */
@@ -4680,7 +4557,7 @@ final class PurchaseIntentPrice extends DomainValue
     public readonly bool $active;
     public readonly ?string $id;
     public readonly ?string $label;
-    public readonly PurchaseIntentMoney $nominal;
+    public readonly Amount $nominal;
     public readonly ?PurchaseIntentOriginalPrice $original;
 
     /** @param array<string, mixed> $data */
@@ -4689,7 +4566,7 @@ final class PurchaseIntentPrice extends DomainValue
         $this->active = ValueHydrator::bool($data['active'] ?? null, false);
         $this->id = ValueHydrator::string($data['id'] ?? null, true);
         $this->label = ValueHydrator::string($data['label'] ?? null, true);
-        $this->nominal = ValueHydrator::object($data['nominal'] ?? null, [PurchaseIntentMoney::class], false);
+        $this->nominal = ValueHydrator::object($data['nominal'] ?? null, [Amount::class], false);
         $this->original = ValueHydrator::object($data['original'] ?? null, [PurchaseIntentOriginalPrice::class], true);
     }
 
@@ -4940,7 +4817,7 @@ final class Refund extends DomainValue
     public readonly ?string $reference;
     public readonly string $status;
     public readonly ?string $succeededAt;
-    public readonly RefundMoney $total;
+    public readonly Amount $total;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -4958,7 +4835,7 @@ final class Refund extends DomainValue
         $this->reference = ValueHydrator::string($data['reference'] ?? null, true);
         $this->status = ValueHydrator::string($data['status'] ?? null, false);
         $this->succeededAt = ValueHydrator::string($data['succeeded_at'] ?? null, true);
-        $this->total = ValueHydrator::object($data['total'] ?? null, [RefundMoney::class], false);
+        $this->total = ValueHydrator::object($data['total'] ?? null, [Amount::class], false);
     }
 
     /** @param array<string, mixed> $data */
@@ -4972,39 +4849,20 @@ final class RefundLineItem extends DomainValue
 {
     public readonly string $id;
     public readonly string $orderLineItemId;
-    public readonly RefundMoney $originalAmountPaid;
+    public readonly Amount $originalAmountPaid;
     public readonly ?GenericValue $reason;
     public readonly ?string $reasonDetails;
-    public readonly RefundMoney $refundAmount;
+    public readonly Amount $refundAmount;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->orderLineItemId = ValueHydrator::string($data['order_line_item_id'] ?? null, false);
-        $this->originalAmountPaid = ValueHydrator::object($data['original_amount_paid'] ?? null, [RefundMoney::class], false);
+        $this->originalAmountPaid = ValueHydrator::object($data['original_amount_paid'] ?? null, [Amount::class], false);
         $this->reason = ValueHydrator::object($data['reason'] ?? null, [GenericValue::class], true);
         $this->reasonDetails = ValueHydrator::string($data['reason_details'] ?? null, true);
-        $this->refundAmount = ValueHydrator::object($data['refund_amount'] ?? null, [RefundMoney::class], false);
-    }
-
-    /** @param array<string, mixed> $data */
-    public static function fromArray(array $data): static
-    {
-        return new static($data);
-    }
-}
-
-final class RefundMoney extends DomainValue
-{
-    public readonly string $currency;
-    public readonly int $value;
-
-    /** @param array<string, mixed> $data */
-    public function __construct(array $data)
-    {
-        $this->currency = ValueHydrator::string($data['currency'] ?? null, false);
-        $this->value = ValueHydrator::int($data['value'] ?? null, false);
+        $this->refundAmount = ValueHydrator::object($data['refund_amount'] ?? null, [Amount::class], false);
     }
 
     /** @param array<string, mixed> $data */

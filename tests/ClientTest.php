@@ -2,13 +2,24 @@
 
 use PHPUnit\Framework\TestCase;
 use Inttegro\Client;
+use Inttegro\CatalogPrice;
+use Inttegro\CatalogPriceParams;
+use Inttegro\Money\Amount;
+use Inttegro\Money\AmountParams;
+use Inttegro\Money\Currency;
+use Inttegro\Price;
+use Inttegro\PriceParams;
 use Inttegro\AuthenticationError;
 use Inttegro\Enums\ProductType;
+use Inttegro\Enums\MobileMoneyNetwork;
 use Inttegro\Enums\RefundReason;
 use Inttegro\Enums\UploadRequestStatus;
 use Inttegro\Order;
 use Inttegro\OrderDocumentDeliveryResult;
 use Inttegro\OrderPage;
+use Inttegro\Payment;
+use Inttegro\PaymentAttempt;
+use Inttegro\PaymentMethodSnapshot;
 use Inttegro\Refund;
 
 final class ClientTest extends TestCase
@@ -22,8 +33,34 @@ final class ClientTest extends TestCase
     public function test_api_enums_encode_as_wire_values(): void
     {
         $this->assertSame('digital', ProductType::Digital->value);
+        $this->assertSame('mtn', MobileMoneyNetwork::MTN->value);
+        $this->assertSame('ghs', Currency::GHS->value);
         $this->assertSame('requested_by_customer', RefundReason::RequestedByCustomer->value);
         $this->assertSame('{"status":"pending"}', json_encode(['status' => UploadRequestStatus::Pending]));
+    }
+
+    public function test_amount_and_price_types_keep_wire_shapes_flat(): void
+    {
+        $amount = new AmountParams(Currency::GHS, 3005);
+        $price = new PriceParams(Currency::USD, 1200);
+        $catalogParams = new CatalogPriceParams($amount, label: 'Retail');
+        $catalogPrice = CatalogPrice::fromArray([
+            'id' => 'pr_123',
+            'active' => true,
+            'nominal' => ['currency' => 'ghs', 'value' => 3005],
+            'created_at' => '2026-09-02T12:00:00Z',
+        ]);
+        $inlinePrice = Price::fromArray(['currency' => 'eur', 'value' => 900]);
+
+        $this->assertSame(['currency' => 'ghs', 'value' => 3005], $amount->toArray());
+        $this->assertSame(['currency' => 'usd', 'value' => 1200], $price->toArray());
+        $this->assertSame([
+            'amount' => ['currency' => 'ghs', 'value' => 3005],
+            'label' => 'Retail',
+        ], $catalogParams->toArray());
+        $this->assertInstanceOf(Amount::class, $catalogPrice->nominal);
+        $this->assertSame(Currency::GHS, $catalogPrice->nominal->currency);
+        $this->assertSame(Currency::EUR, $inlinePrice->currency);
     }
 
     public function test_balance_transactions_expose_matching_semantic_sources(): void
@@ -119,6 +156,33 @@ final class ClientTest extends TestCase
         $this->assertInstanceOf(Refund::class, $refund);
         $this->assertInstanceOf(OrderDocumentDeliveryResult::class, $delivery);
         $this->assertSame('or_1', $order->id);
+    }
+
+    public function test_order_payments_use_semantic_domain_types(): void
+    {
+        $order = Order::fromArray([
+            'id' => 'or_1',
+            'status' => 'requires_payment',
+            'payment' => [
+                'id' => 'py_1',
+                'status' => 'requires_action',
+                'statement_descriptor' => 'INTTEGRO',
+                'amount' => ['currency' => 'ghs', 'value' => 2500],
+                'payment_method' => [
+                    'id' => 'pm_1',
+                    'created_at' => '2026-09-02T12:00:00Z',
+                    'customer_id' => 'cus_1',
+                    'type' => 'mobile_money',
+                    'verified' => true,
+                ],
+                'latest_attempt' => ['status' => 'initiated'],
+                'initiated_at' => '2026-09-02T12:00:00Z',
+            ],
+        ]);
+
+        $this->assertInstanceOf(Payment::class, $order->payment);
+        $this->assertInstanceOf(PaymentMethodSnapshot::class, $order->payment->paymentMethod);
+        $this->assertInstanceOf(PaymentAttempt::class, $order->payment->latestAttempt);
     }
 
     public function test_all_resource_methods_return_domain_types(): void

@@ -36,6 +36,8 @@ require __DIR__ . '/vendor/autoload.php';
 use Inttegro\APIError;
 use Inttegro\Client;
 use Inttegro\Enums\ProductType;
+use Inttegro\Money\Currency;
+use Inttegro\PriceParams;
 
 $inttegro = new Client(getenv('INTTEGRO_API_KEY'));
 
@@ -58,7 +60,7 @@ try {
                 'type' => ProductType::Digital,
                 'name' => 'Monthly subscription',
                 'quantity' => 1,
-                'price' => ['currency' => 'ghs', 'value' => 5000],
+                'price' => new PriceParams(Currency::GHS, 5000),
             ],
         ]],
     ]);
@@ -80,7 +82,7 @@ The SDK covers orders and checkout, customers, products and prices, purchase int
 
 PHP-specific features:
 
-- Native array request payloads and backed enums for public API values.
+- Native array request payloads, typed amount and price values, and backed enums for public API values.
 - Immutable typed domain values returned directly by every resource operation, with transport envelopes decoded internally.
 - Property and `ArrayAccess` syntax, `toArray()`, and JSON serialization on domain values.
 - No production Composer dependencies beyond PHP itself; HTTP uses cURL.
@@ -95,7 +97,7 @@ Packagist versions resolve to immutable Git commit references. The corresponding
 
 ```bash
 sha256sum --check SHA256SUMS
-gh attestation verify inttegro-sdk-php-3.0.1.tar.gz \
+gh attestation verify inttegro-sdk-php-4.0.0.tar.gz \
   --repo zebodotdev/inttegro-sdk-php
 ```
 

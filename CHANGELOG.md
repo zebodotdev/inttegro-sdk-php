@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [4.0.0] - 2026-09-03
+
+- Breaking: renamed order-prefixed payment value objects to semantic `Payment`, `PaymentAttempt`, `PaymentMethodSnapshot`, and payment payout-configuration types.
+- Added focused money amount and inline price types for request and response contracts.
+- Preserved direct domain returns from every resource method; transport envelopes remain internal.
+
 ## [3.0.1] - 2026-09-03
 
 - Corrected the user agent, README, and resource examples to show direct domain return values.

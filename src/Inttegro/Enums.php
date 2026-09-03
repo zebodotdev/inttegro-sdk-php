@@ -29,7 +29,7 @@ enum UploadReviewType: string { case Automatic = 'automatic'; case Manual = 'man
 enum PaymentNextActionType: string { case ConfirmPayment = 'confirm_payment'; case Execute = 'execute'; case Redirect = 'redirect'; case Authorize = 'authorize'; case None = 'none'; }
 enum PaymentConfirmationChannel: string { case Sms = 'sms'; case Email = 'email'; case Push = 'push'; }
 enum PaymentMethodType: string { case MobileMoney = 'mobile_money'; case BankAccount = 'bank_account'; case Card = 'card'; case Motito = 'motito'; }
-enum MobileMoneyNetwork: string { case Airtel = 'airtel'; case Mtn = 'mtn'; case Telecel = 'telecel'; case Vodafone = 'vodafone'; }
+enum MobileMoneyNetwork: string { case Airtel = 'airtel'; case MTN = 'mtn'; case Telecel = 'telecel'; case Vodafone = 'vodafone'; }
 
 enum ProductType: string { case Physical = 'physical'; case Digital = 'digital'; case Service = 'service'; case Voucher = 'voucher'; case Custom = 'custom'; case Cause = 'cause'; }
 enum ProductShipmentType: string { case Delivery = 'delivery'; case Download = 'download'; case Render = 'render'; case Service = 'service'; case Stream = 'stream'; }
@@ -52,7 +52,7 @@ enum OrderDocumentKind: string { case Invoice = 'invoice'; case Receipt = 'recei
 enum DeliveryChannel: string { case Email = 'email'; case Sms = 'sms'; }
 enum CheckoutOrderStatus: string { case Preparing = 'preparing'; case RequiresPayment = 'requires_payment'; case Completed = 'completed'; case Canceled = 'canceled'; case Expired = 'expired'; }
 enum OrderStatus: string { case Preparing = 'preparing'; case RequiresPayment = 'requires_payment'; case Paid = 'paid'; case Completed = 'completed'; case Canceled = 'canceled'; case Expired = 'expired'; case Unknown = 'unknown'; }
-enum OrderPaymentStatus: string { case Initiated = 'initiated'; case RequiresAction = 'requires_action'; case Overdue = 'overdue'; case Executed = 'executed'; case Paid = 'paid'; case Canceled = 'canceled'; case Expired = 'expired'; case Failed = 'failed'; case Unknown = 'unknown'; }
+enum PaymentStatus: string { case Initiated = 'initiated'; case RequiresAction = 'requires_action'; case Overdue = 'overdue'; case Executed = 'executed'; case Paid = 'paid'; case Canceled = 'canceled'; case Expired = 'expired'; case Failed = 'failed'; case Unknown = 'unknown'; }
 enum PaymentAttemptStatus: string { case Initiated = 'initiated'; case Executed = 'executed'; case Succeeded = 'succeeded'; case Canceled = 'canceled'; case Expired = 'expired'; case Failed = 'failed'; case Unknown = 'unknown'; }
 enum CheckoutPaymentStatus: string { case RequiresAction = 'requires_action'; case Processing = 'processing'; case Succeeded = 'succeeded'; case Failed = 'failed'; case Cancelled = 'cancelled'; }
 enum PaymentResultStatus: string { case Pending = 'pending'; case RequiresConfirmation = 'requires_confirmation'; case Processing = 'processing'; case Succeeded = 'succeeded'; case Failed = 'failed'; }

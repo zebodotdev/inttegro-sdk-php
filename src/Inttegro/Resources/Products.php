@@ -23,9 +23,9 @@ class Products
     }
 
     /** Add a price to a product (POST /products/add_price). */
-    public function addPrice(array $payload): \Inttegro\ProductPriceNominal
+    public function addPrice(array $payload): \Inttegro\CatalogPrice
     {
-        return $this->http->postResource('/products/add_price', \Inttegro\ProductPriceNominal::class, 'price', $payload);
+        return $this->http->postResource('/products/add_price', \Inttegro\CatalogPrice::class, 'price', $payload);
     }
 
     /** Set a product's default unit price (POST /products/set_default_unit_price). */
