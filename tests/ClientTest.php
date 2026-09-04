@@ -33,6 +33,12 @@ final class ClientTest extends TestCase
         '/file_links/open',
         '/upload_requests/upload',
     ];
+    private const CLIENT_CHECKOUT_PATHS = [
+        '/checkout/lookup',
+        '/checkout/pay',
+        '/checkout/request_confirmation',
+        '/checkout/confirm_payment',
+    ];
 
     public function test_api_enums_encode_as_wire_values(): void
     {
@@ -235,6 +241,7 @@ final class ClientTest extends TestCase
         $missing = array_values(array_diff(
             $this->openApiSpecPaths(),
             self::EXTERNALLY_SUPPLIED_CAPABILITY_PATHS,
+            self::CLIENT_CHECKOUT_PATHS,
             $this->implementedSdkPaths()
         ));
 
