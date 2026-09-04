@@ -2,6 +2,9 @@
 
 namespace Inttegro;
 
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+use OpenTelemetry\Context\Propagation\TextMapPropagatorInterface;
+
 use Inttegro\Resources\BalanceTransactions;
 use Inttegro\Resources\Broadcasts;
 use Inttegro\Resources\MessageTemplates;
@@ -58,9 +61,20 @@ class Client
         string $apiKey,
         string $baseUrl = 'https://api.inttegro.com',
         int $timeout = 30,
-        $adapter = null
+        $adapter = null,
+        bool $telemetryEnabled = true,
+        ?TracerProviderInterface $tracerProvider = null,
+        ?TextMapPropagatorInterface $propagator = null
     ) {
-        $this->http = new HttpClient($apiKey, $baseUrl, $timeout, $adapter);
+        $this->http = new HttpClient(
+            $apiKey,
+            $baseUrl,
+            $timeout,
+            $adapter,
+            $telemetryEnabled,
+            $tracerProvider,
+            $propagator
+        );
 
         $this->orders = new Orders($this->http);
         $this->paymentMethods = new PaymentMethods($this->http);

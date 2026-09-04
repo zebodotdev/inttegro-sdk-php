@@ -2,6 +2,11 @@
 
 namespace Inttegro;
 
+use Inttegro\Internal\Telemetry;
+use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+use OpenTelemetry\Context\Propagation\TextMapPropagatorInterface;
+
 class HttpClient
 {
     private string $apiKey;
@@ -9,9 +14,17 @@ class HttpClient
     private int $timeout;
     private $adapter;
     private string $userAgent;
+    private Telemetry $telemetry;
 
-    public function __construct(string $apiKey, string $baseUrl = 'https://api.inttegro.com', int $timeout = 30, $adapter = null)
-    {
+    public function __construct(
+        string $apiKey,
+        string $baseUrl = 'https://api.inttegro.com',
+        int $timeout = 30,
+        $adapter = null,
+        bool $telemetryEnabled = true,
+        ?TracerProviderInterface $tracerProvider = null,
+        ?TextMapPropagatorInterface $propagator = null
+    ) {
         if (trim($apiKey) === '') {
             throw new \InvalidArgumentException('apiKey is required');
         }
@@ -21,6 +34,7 @@ class HttpClient
         $this->timeout = $timeout;
         $this->adapter = $adapter;
         $this->userAgent = 'inttegro-sdk-php/' . Version::VERSION;
+        $this->telemetry = new Telemetry($telemetryEnabled, $tracerProvider, $propagator);
     }
 
     /**
@@ -80,66 +94,104 @@ class HttpClient
         array $fields,
         array $files,
         array $headers = [],
-        bool $authenticated = true
+        bool $authenticated = true,
+        ?string $operation = null
     ): DomainValue {
-        return $class::fromArray($this->postMultipartArray($path, $fields, $files, $headers, $authenticated));
+        return $class::fromArray($this->postMultipartArray(
+            $path,
+            $fields,
+            $files,
+            $headers,
+            $authenticated,
+            $operation
+        ));
     }
 
     /** @return array<string, mixed> */
-    private function postMultipartArray(string $path, array $fields, array $files, array $headers, bool $authenticated): array
-    {
-        $url = $this->buildUrl($path, []);
-        $requestHeaders = ['Accept: application/json', 'User-Agent: ' . $this->userAgent];
-        if ($authenticated) {
-            $requestHeaders[] = 'Authorization: Bearer ' . $this->apiKey;
-        }
-        if ($authenticated && $this->isIdempotentMutationPath($path) && !$this->hasHeader($headers, 'Idempotency-Key')) {
-            $headers['Idempotency-Key'] = $this->generateIdempotencyKey();
-        }
-        foreach ($headers as $key => $value) {
-            $requestHeaders[] = $key . ': ' . $value;
-        }
+    private function postMultipartArray(
+        string $path,
+        array $fields,
+        array $files,
+        array $headers,
+        bool $authenticated,
+        ?string $operation = null
+    ): array {
+        return $this->telemetry->trace(
+            $path,
+            'POST',
+            $this->baseUrl,
+            function (?SpanInterface $span) use ($path, $fields, $files, $headers, $authenticated): array {
+                $url = $this->buildUrl($path, []);
+                $requestHeaders = ['Accept: application/json', 'User-Agent: ' . $this->userAgent];
+                if ($authenticated) {
+                    $requestHeaders[] = 'Authorization: Bearer ' . $this->apiKey;
+                }
+                if ($authenticated && $this->isIdempotentMutationPath($path) && !$this->hasHeader($headers, 'Idempotency-Key')) {
+                    $headers['Idempotency-Key'] = $this->generateIdempotencyKey();
+                }
+                foreach ($headers as $key => $value) {
+                    $requestHeaders[] = $key . ': ' . $value;
+                }
 
-        foreach ($fields as $key => $value) {
-            if ($value === null) {
-                unset($fields[$key]);
-            } elseif (is_array($value)) {
-                $fields[$key] = json_encode($value);
-            }
-        }
-        foreach ($files as $key => $path) {
-            $fields[$key] = new \CURLFile($path);
-        }
+                foreach ($fields as $key => $value) {
+                    if ($value === null) {
+                        unset($fields[$key]);
+                    } elseif (is_array($value)) {
+                        $fields[$key] = json_encode($value);
+                    }
+                }
+                foreach ($files as $key => $filePath) {
+                    $fields[$key] = new \CURLFile($filePath);
+                }
 
-        $response = $this->send('POST', $url, $requestHeaders, $fields);
-        return $this->responseArray($response);
+                $requestHeaders = $this->telemetry->prepare($span, $requestHeaders);
+                $response = $this->send('POST', $url, $requestHeaders, $fields);
+                $this->telemetry->response($span, $response);
+                $result = $this->responseArray($response);
+                $this->telemetry->decoded($span);
+                return $result;
+            },
+            $operation
+        );
     }
 
     public function postBinaryJson(string $path, array $body): FileDownload
     {
-        $url = $this->buildUrl($path, []);
-        $body = $this->withoutTopLevelIdempotencyKey($body);
-        $headers = [
-            'Accept: application/octet-stream',
-            'Authorization: Bearer ' . $this->apiKey,
-            'Content-Type: application/json',
-            'User-Agent: ' . $this->userAgent,
-        ];
-        $response = $this->send('POST', $url, $headers, json_encode($body));
-        if ($response['status'] >= 400) {
-            $this->handleErrorResponse($response);
-        }
-        return new FileDownload($response['body'], $response['headers']);
+        return $this->telemetry->trace($path, 'POST', $this->baseUrl, function (?SpanInterface $span) use ($path, $body): FileDownload {
+            $url = $this->buildUrl($path, []);
+            $body = $this->withoutTopLevelIdempotencyKey($body);
+            $headers = $this->telemetry->prepare($span, [
+                'Accept: application/octet-stream',
+                'Authorization: Bearer ' . $this->apiKey,
+                'Content-Type: application/json',
+                'User-Agent: ' . $this->userAgent,
+            ]);
+            $response = $this->send('POST', $url, $headers, json_encode($body));
+            $this->telemetry->response($span, $response);
+            if ($response['status'] >= 400) {
+                $this->handleErrorResponse($response);
+            }
+            return new FileDownload($response['body'], $response['headers']);
+        });
     }
 
     public function getBinaryPublic(string $url): FileDownload
     {
-        $headers = ['User-Agent: ' . $this->userAgent];
-        $response = $this->send('GET', $url, $headers, null);
-        if ($response['status'] >= 400) {
-            $this->handleErrorResponse($response);
-        }
-        return new FileDownload($response['body'], $response['headers']);
+        return $this->telemetry->trace(
+            $url,
+            'GET',
+            $this->baseUrl,
+            function (?SpanInterface $span) use ($url): FileDownload {
+                $headers = $this->telemetry->prepare($span, ['User-Agent: ' . $this->userAgent]);
+                $response = $this->send('GET', $url, $headers, null);
+                $this->telemetry->response($span, $response);
+                if ($response['status'] >= 400) {
+                    $this->handleErrorResponse($response);
+                }
+                return new FileDownload($response['body'], $response['headers']);
+            },
+            'file_links.download'
+        );
     }
 
     /** @return array<string, mixed> */
@@ -151,38 +203,49 @@ class HttpClient
         array $customHeaders = []
     ): array
     {
-        $url = $this->buildUrl($path, $query);
-        $headers = [
-            'Accept: application/json',
-            'Authorization: Bearer ' . $this->apiKey,
-            'User-Agent: ' . $this->userAgent,
-        ];
+        return $this->telemetry->trace(
+            $path,
+            $method,
+            $this->baseUrl,
+            function (?SpanInterface $span) use ($method, $path, $body, $query, $customHeaders): array {
+                $url = $this->buildUrl($path, $query);
+                $headers = [
+                    'Accept: application/json',
+                    'Authorization: Bearer ' . $this->apiKey,
+                    'User-Agent: ' . $this->userAgent,
+                ];
 
-        $payload = null;
-        if ($body !== null) {
-            $body = strtoupper($method) === 'POST'
-                && $this->isIdempotentMutationPath($path)
-                && !$this->hasHeader($customHeaders, 'Idempotency-Key')
-                ? $this->withRequestMetaIdempotency($body)
-                : $this->withoutTopLevelIdempotencyKey($body);
-            $headers[] = 'Content-Type: application/json';
-            $payload = json_encode($body);
-        }
+                $payload = null;
+                if ($body !== null) {
+                    $body = strtoupper($method) === 'POST'
+                        && $this->isIdempotentMutationPath($path)
+                        && !$this->hasHeader($customHeaders, 'Idempotency-Key')
+                        ? $this->withRequestMetaIdempotency($body)
+                        : $this->withoutTopLevelIdempotencyKey($body);
+                    $headers[] = 'Content-Type: application/json';
+                    $payload = json_encode($body);
+                }
 
-        foreach ($customHeaders as $key => $value) {
-            $headers[] = $key . ': ' . $value;
-        }
+                foreach ($customHeaders as $key => $value) {
+                    $headers[] = $key . ': ' . $value;
+                }
+                $headers = $this->telemetry->prepare($span, $headers);
 
-        try {
-            $response = $this->send($method, $url, $headers, $payload);
-        } catch (\Throwable $e) {
-            if ($e instanceof TimeoutError) {
-                throw $e;
+                try {
+                    $response = $this->send($method, $url, $headers, $payload);
+                } catch (\Throwable $e) {
+                    if ($e instanceof TimeoutError) {
+                        throw $e;
+                    }
+                    throw new NetworkError('Network request failed', $e);
+                }
+
+                $this->telemetry->response($span, $response);
+                $result = $this->responseArray($response);
+                $this->telemetry->decoded($span);
+                return $result;
             }
-            throw new NetworkError('Network request failed', $e);
-        }
-
-        return $this->responseArray($response);
+        );
     }
 
     private function withRequestMetaIdempotency(array $body): array

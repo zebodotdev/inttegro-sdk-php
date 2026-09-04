@@ -76,6 +76,20 @@ try {
 
 Amounts use integer minor units: `5000` GHS is GHS 50.00. Reuse the same idempotency key when retrying the same logical write. If you omit one, the SDK generates a UUIDv7 key for mutating calls.
 
+## Observe SDK operations
+
+The SDK emits vendor-neutral OpenTelemetry spans through your application's provider. It never configures an exporter or sends telemetry by itself. The global provider is used automatically, or inject the provider and propagator owned by your application:
+
+```php
+$inttegro = new Client(
+    apiKey: getenv('INTTEGRO_API_KEY'),
+    tracerProvider: $tracerProvider,
+    propagator: $propagator,
+);
+```
+
+Spans are named after logical operations such as `inttegro.orders.create`. HTTP attempts, response receipt, and decoding are span events. API keys, bodies, resource IDs, dynamic URLs, and exception messages are never recorded. See [SDK observability](https://studio.inttegro.com/sdk-observability) for the complete contract and pass `telemetryEnabled: false` when needed.
+
 ## Work with the API
 
 The SDK covers orders and checkout, customers, products and prices, purchase intents, payment methods, balances, payouts and refunds, notifications, files, application settings, keys, and country specifications. Resources use camel-case properties such as `purchaseIntents` and `paymentMethods`.
@@ -85,7 +99,7 @@ PHP-specific features:
 - Native array request payloads, typed amount and price values, and backed enums for public API values.
 - Immutable typed domain values returned directly by every resource operation, with transport envelopes decoded internally.
 - Property and `ArrayAccess` syntax, `toArray()`, and JSON serialization on domain values.
-- No production Composer dependencies beyond PHP itself; HTTP uses cURL.
+- cURL transport with the lightweight OpenTelemetry API for application-owned tracing.
 - Configurable timeout, base URL, and injectable adapter for tests.
 - Structured authentication, rate-limit, network, timeout, and API exceptions.
 
@@ -97,7 +111,7 @@ Packagist versions resolve to immutable Git commit references. The corresponding
 
 ```bash
 sha256sum --check SHA256SUMS
-gh attestation verify inttegro-sdk-php-5.1.0.tar.gz \
+gh attestation verify inttegro-sdk-php-5.2.0.tar.gz \
   --repo zebodotdev/inttegro-sdk-php
 ```
 

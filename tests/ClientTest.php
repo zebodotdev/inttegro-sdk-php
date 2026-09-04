@@ -25,6 +25,12 @@ use Inttegro\BankAccounts\BankAccount;
 use Inttegro\BankAccounts\BankAccountType;
 use Inttegro\Wallets\Wallet;
 use Inttegro\Wallets\WalletType;
+use OpenTelemetry\API\Trace\SpanBuilderInterface;
+use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\API\Trace\TracerInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+use OpenTelemetry\Context\Propagation\TextMapPropagatorInterface;
+use OpenTelemetry\Context\ScopeInterface;
 
 final class ClientTest extends TestCase
 {
@@ -39,6 +45,99 @@ final class ClientTest extends TestCase
         '/checkout/request_confirmation',
         '/checkout/confirm_payment',
     ];
+
+    public function test_telemetry_does_not_name_unknown_routes_from_resource_ids(): void
+    {
+        $class = new \ReflectionClass(\Inttegro\Internal\Telemetry::class);
+        $telemetry = $class->newInstanceWithoutConstructor();
+        $method = $class->getMethod('requestDetails');
+        [$operation, $route, $serverAddress] = $method->invoke(
+            $telemetry,
+            '/orders/or_private_123',
+            'https://api.inttegro.com',
+            null
+        );
+
+        $this->assertSame('http.request', $operation);
+        $this->assertNull($route);
+        $this->assertSame('api.inttegro.com', $serverAddress);
+    }
+
+    public function test_emits_redacted_opentelemetry_span_and_propagates_context(): void
+    {
+        $events = [];
+        $attributes = [];
+        $requests = [];
+        $scope = $this->createMock(ScopeInterface::class);
+        $scope->expects($this->once())->method('detach');
+        $span = $this->createMock(SpanInterface::class);
+        $span->method('activate')->willReturn($scope);
+        $span->method('setAttribute')->willReturnCallback(
+            function (string $key, mixed $value) use (&$attributes, $span): SpanInterface {
+                $attributes[$key] = $value;
+                return $span;
+            }
+        );
+        $span->method('addEvent')->willReturnCallback(
+            function (string $name, iterable $eventAttributes = []) use (&$events, $span): SpanInterface {
+                $events[] = ['name' => $name, 'attributes' => $eventAttributes];
+                return $span;
+            }
+        );
+        $builder = $this->createMock(SpanBuilderInterface::class);
+        $builder->method('setSpanKind')->willReturnSelf();
+        $builder->method('setAttributes')->willReturnCallback(
+            function (iterable $spanAttributes) use (&$attributes, $builder): SpanBuilderInterface {
+                $attributes = [...$attributes, ...$spanAttributes];
+                return $builder;
+            }
+        );
+        $builder->method('startSpan')->willReturn($span);
+        $tracer = $this->createMock(TracerInterface::class);
+        $tracer->expects($this->once())
+            ->method('spanBuilder')
+            ->with('inttegro.orders.lookup')
+            ->willReturn($builder);
+        $provider = $this->createMock(TracerProviderInterface::class);
+        $provider->method('getTracer')->willReturn($tracer);
+        $propagator = $this->createMock(TextMapPropagatorInterface::class);
+        $propagator->method('inject')->willReturnCallback(function (&$carrier): void {
+            $carrier['traceparent'] = '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01';
+        });
+        $adapter = function ($method, $url, $headers, $payload) use (&$requests) {
+            $requests[] = compact('method', 'url', 'headers', 'payload');
+            return [
+                'status' => 200,
+                'body' => json_encode(['order' => ['id' => 'or_1', 'status' => 'preparing']]),
+                'headers' => ['content-type' => 'application/json', 'x-request-id' => 'req_123'],
+            ];
+        };
+        $client = new Client(
+            'sk_live_must_not_appear',
+            'https://api.inttegro.com',
+            5,
+            $adapter,
+            true,
+            $provider,
+            $propagator
+        );
+
+        $client->orders->lookup('or_private');
+
+        $this->assertSame('php', $attributes['inttegro.sdk.language']);
+        $this->assertSame(200, $attributes['http.response.status_code']);
+        $this->assertSame('req_123', $attributes['inttegro.request.id']);
+        $this->assertSame([
+            'inttegro.request.prepared',
+            'inttegro.http.attempt.started',
+            'inttegro.response.received',
+            'inttegro.response.decoded',
+        ], array_column($events, 'name'));
+        $this->assertStringContainsString('traceparent:', implode("\n", $requests[0]['headers']));
+        $encoded = json_encode([$attributes, $events]);
+        $this->assertStringNotContainsString('sk_live_must_not_appear', $encoded);
+        $this->assertStringNotContainsString('or_private', $encoded);
+    }
 
     public function test_api_enums_encode_as_wire_values(): void
     {

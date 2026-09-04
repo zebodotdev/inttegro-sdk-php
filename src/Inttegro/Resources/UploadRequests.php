@@ -43,7 +43,8 @@ class UploadRequests
             [],
             ['file' => $payload['file']],
             [],
-            false
+            false,
+            'upload_requests.upload'
         );
     }
 
