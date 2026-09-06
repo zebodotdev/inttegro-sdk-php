@@ -10,6 +10,8 @@ use Inttegro\Money\Currency;
 use Inttegro\Price;
 use Inttegro\PriceParams;
 use Inttegro\AuthenticationError;
+use Inttegro\APIError;
+use Inttegro\ErrorReport;
 use Inttegro\ProductType;
 use Inttegro\MobileMoneyNetwork;
 use Inttegro\RefundReason;
@@ -137,6 +139,86 @@ final class ClientTest extends TestCase
         $encoded = json_encode([$attributes, $events]);
         $this->assertStringNotContainsString('sk_live_must_not_appear', $encoded);
         $this->assertStringNotContainsString('or_private', $encoded);
+    }
+
+    public function test_reports_one_privacy_safe_final_failure_when_configured(): void
+    {
+        $reports = [];
+        $adapter = static function (): array {
+            return [
+                'status' => 503,
+                'body' => json_encode([
+                    'error' => [
+                        'type' => 'transient_error',
+                        'code' => 'provider_failed',
+                        'fix_code' => 'repeat_same_request',
+                        'message' => 'private provider detail',
+                    ],
+                ]),
+                'headers' => ['content-type' => 'application/json', 'x-request-id' => 'req_456'],
+            ];
+        };
+        $client = new Client(
+            apiKey: 'sk_live_must_not_appear',
+            adapter: $adapter,
+            telemetryEnabled: false,
+            errorReporter: static function (ErrorReport $report) use (&$reports): void {
+                $reports[] = $report;
+                throw new \RuntimeException('collector unavailable');
+            }
+        );
+
+        try {
+            $client->orders->lookup('or_private');
+            $this->fail('Expected APIError');
+        } catch (APIError $error) {
+            $this->assertCount(1, $reports);
+            $report = $reports[0];
+            $this->assertSame('http_503', $report->category);
+            $this->assertSame('orders.lookup', $report->operation);
+            $this->assertSame('POST', $report->http->method);
+            $this->assertSame('/orders/lookup', $report->http->route);
+            $this->assertSame(503, $report->http->statusCode);
+            $this->assertSame('req_456', $report->http->requestId);
+            $this->assertSame('transient_error', $report->apiError?->type);
+            $this->assertSame('inttegro:php:orders.lookup:http_503:503', $report->fingerprint);
+            $this->assertSame($report, $error->report);
+            $encoded = json_encode($report, JSON_THROW_ON_ERROR);
+            $this->assertStringNotContainsString('private provider detail', $encoded);
+            $this->assertStringNotContainsString('sk_live_must_not_appear', $encoded);
+            $this->assertStringNotContainsString('or_private', $encoded);
+        }
+    }
+
+    public function test_default_error_reporting_skips_expected_api_errors(): void
+    {
+        $reports = [];
+        $adapter = static fn (): array => [
+            'status' => 400,
+            'body' => json_encode([
+                'error' => [
+                    'type' => 'invalid_request_parameter',
+                    'message' => 'Invalid request parameter',
+                ],
+            ]),
+            'headers' => ['content-type' => 'application/json'],
+        ];
+        $client = new Client(
+            apiKey: 'test',
+            adapter: $adapter,
+            telemetryEnabled: false,
+            errorReporter: static function (ErrorReport $report) use (&$reports): void {
+                $reports[] = $report;
+            }
+        );
+
+        try {
+            $client->orders->lookup('or_private');
+            $this->fail('Expected APIError');
+        } catch (APIError $error) {
+            $this->assertSame([], $reports);
+            $this->assertNull($error->report);
+        }
     }
 
     public function test_api_enums_encode_as_wire_values(): void

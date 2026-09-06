@@ -4,6 +4,7 @@ namespace Inttegro;
 
 class InttegroError extends \Exception
 {
+    public ?ErrorReport $report = null;
 }
 
 class NetworkError extends InttegroError
@@ -32,6 +33,7 @@ class APIError extends InttegroError
     public ?string $cause;
     public $body;
     public $data;
+    public ?string $requestId;
 
     public function __construct(
         string $message,
@@ -43,7 +45,8 @@ class APIError extends InttegroError
         ?string $fixCode = null,
         ?string $cause = null,
         $body = null,
-        $data = null
+        $data = null,
+        ?string $requestId = null
     ) {
         parent::__construct($message);
         $this->status = $status;
@@ -55,6 +58,7 @@ class APIError extends InttegroError
         $this->cause = $cause;
         $this->body = $body;
         $this->data = $data;
+        $this->requestId = $requestId;
     }
 }
 
@@ -77,9 +81,10 @@ class RateLimitError extends APIError
         ?string $cause = null,
         $body = null,
         $data = null,
-        ?int $retryAfter = null
+        ?int $retryAfter = null,
+        ?string $requestId = null
     ) {
-        parent::__construct($message, $status, $code, $type, $url, $detail, $fixCode, $cause, $body, $data);
+        parent::__construct($message, $status, $code, $type, $url, $detail, $fixCode, $cause, $body, $data, $requestId);
         $this->retryAfter = $retryAfter;
     }
 }

@@ -23,7 +23,9 @@ class HttpClient
         $adapter = null,
         bool $telemetryEnabled = true,
         ?TracerProviderInterface $tracerProvider = null,
-        ?TextMapPropagatorInterface $propagator = null
+        ?TextMapPropagatorInterface $propagator = null,
+        ?callable $errorReporter = null,
+        string $errorReportingPolicy = 'unexpected'
     ) {
         if (trim($apiKey) === '') {
             throw new \InvalidArgumentException('apiKey is required');
@@ -34,7 +36,13 @@ class HttpClient
         $this->timeout = $timeout;
         $this->adapter = $adapter;
         $this->userAgent = 'inttegro-sdk-php/' . Version::VERSION;
-        $this->telemetry = new Telemetry($telemetryEnabled, $tracerProvider, $propagator);
+        $this->telemetry = new Telemetry(
+            $telemetryEnabled,
+            $tracerProvider,
+            $propagator,
+            $errorReporter,
+            $errorReportingPolicy
+        );
     }
 
     /**
@@ -342,9 +350,11 @@ class HttpClient
         $detail = $payload['detail'] ?? null;
         $fixCode = $payload['fix_code'] ?? null;
         $cause = $payload['cause'] ?? null;
+        $requestId = $response['headers']['x-request-id'] ?? null;
+        $requestId = is_string($requestId) && $requestId !== '' ? $requestId : null;
 
         if ($status === 401) {
-            throw new AuthenticationError($message, $status, $code, $type, $url, $detail, $fixCode, $cause, $rawBody, $data);
+            throw new AuthenticationError($message, $status, $code, $type, $url, $detail, $fixCode, $cause, $rawBody, $data, $requestId);
         }
 
         if ($status === 429) {
@@ -360,11 +370,12 @@ class HttpClient
                 $cause,
                 $rawBody,
                 $data,
-                $retryAfter
+                $retryAfter,
+                $requestId
             );
         }
 
-        throw new APIError($message, $status, $code, $type, $url, $detail, $fixCode, $cause, $rawBody, $data);
+        throw new APIError($message, $status, $code, $type, $url, $detail, $fixCode, $cause, $rawBody, $data, $requestId);
     }
 
     private function send(string $method, string $url, array $headers, $payload): array

@@ -64,7 +64,9 @@ class Client
         $adapter = null,
         bool $telemetryEnabled = true,
         ?TracerProviderInterface $tracerProvider = null,
-        ?TextMapPropagatorInterface $propagator = null
+        ?TextMapPropagatorInterface $propagator = null,
+        ?callable $errorReporter = null,
+        string $errorReportingPolicy = 'unexpected'
     ) {
         $this->http = new HttpClient(
             $apiKey,
@@ -73,7 +75,9 @@ class Client
             $adapter,
             $telemetryEnabled,
             $tracerProvider,
-            $propagator
+            $propagator,
+            $errorReporter,
+            $errorReportingPolicy
         );
 
         $this->orders = new Orders($this->http);
