@@ -5,6 +5,7 @@
   "license": "MIT",
   "homepage": "https://studio.inttegro.com",
   "support": {
+    "docs": "https://php.inttegro.dev/",
     "issues": "https://github.com/zebodotdev/inttegro-sdk-php/issues",
     "source": "https://github.com/zebodotdev/inttegro-sdk-php"
   },
