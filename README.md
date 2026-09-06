@@ -90,6 +90,24 @@ $inttegro = new Client(
 
 Spans are named after logical operations such as `inttegro.orders.create`. HTTP attempts, response receipt, and decoding are span events. API keys, bodies, resource IDs, dynamic URLs, and exception messages are never recorded. See [SDK observability](https://studio.inttegro.com/sdk-observability) for the complete contract and pass `telemetryEnabled: false` when needed.
 
+### Report SDK failures
+
+Provide an application-owned reporter to receive one immutable, typed, privacy-safe report after an SDK operation finally fails. The default `unexpected` policy reports transport, timeout, decoding, SDK, `unknown_error`, and server-side failures while leaving normal 4xx API errors alone:
+
+```php
+use Inttegro\Client;
+use Inttegro\ErrorReport;
+
+$inttegro = new Client(
+    apiKey: getenv('INTTEGRO_API_KEY'),
+    errorReporter: static fn (ErrorReport $report) => $errorCollector->enqueue($report),
+);
+```
+
+Pass `errorReportingPolicy: 'all'` to include expected API failures; cancellations are never reported. `ErrorReport` implements `JsonSerializable`. Reports contain the logical operation, static route, server host, status and request IDs when available, duration, safe API error codes, SDK identity, stable fingerprint, exception type, and trace IDs when tracing is active. They exclude credentials, headers, bodies, resource IDs, dynamic URLs, exception messages, and stack traces. Reporter failures are isolated and the original SDK exception is still thrown.
+
+Error reporting is completely opt-in. Without `errorReporter`, the SDK does not calculate report metadata, create an event ID or timestamp, allocate a report, or serialize a payload.
+
 ## Work with the API
 
 The SDK covers orders and checkout, customers, products and prices, purchase intents, payment methods, balances, payouts and refunds, notifications, files, application settings, keys, and country specifications. Resources use camel-case properties such as `purchaseIntents` and `paymentMethods`.

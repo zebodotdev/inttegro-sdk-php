@@ -13,6 +13,7 @@
       "Inttegro\\": "src/Inttegro/"
     },
     "files": [
+      "src/Inttegro/ErrorReporting.php",
       "src/Inttegro/Errors.php",
       "src/Inttegro/Enums.php",
       "src/Inttegro/Domain.php",

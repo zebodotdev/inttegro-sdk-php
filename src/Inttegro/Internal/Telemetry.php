@@ -6,6 +6,12 @@ use Inttegro\APIError;
 use Inttegro\NetworkError;
 use Inttegro\TimeoutError;
 use Inttegro\Version;
+use Inttegro\APIErrorReportContext;
+use Inttegro\ErrorReport;
+use Inttegro\HTTPReportContext;
+use Inttegro\InttegroError;
+use Inttegro\SDKReportContext;
+use Inttegro\TraceReportContext;
 
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\API\Trace\SpanInterface;
@@ -35,12 +41,20 @@ final class Telemetry
     ];
     private TracerInterface $tracer;
     private TextMapPropagatorInterface $propagator;
+    /** @var null|\Closure(ErrorReport): void */
+    private ?\Closure $errorReporter;
 
     public function __construct(
         private bool $enabled = true,
         ?TracerProviderInterface $tracerProvider = null,
-        ?TextMapPropagatorInterface $propagator = null
+        ?TextMapPropagatorInterface $propagator = null,
+        ?callable $errorReporter = null,
+        private string $errorReportingPolicy = 'unexpected'
     ) {
+        if (!in_array($this->errorReportingPolicy, ['unexpected', 'all'], true)) {
+            throw new \InvalidArgumentException('errorReportingPolicy must be unexpected or all');
+        }
+        $this->errorReporter = $errorReporter === null ? null : \Closure::fromCallable($errorReporter);
         $this->tracer = ($tracerProvider ?? Globals::tracerProvider())->getTracer('inttegro', Version::VERSION);
         $this->propagator = $propagator ?? Globals::propagator();
     }
@@ -57,11 +71,20 @@ final class Telemetry
         callable $callback,
         ?string $operationOverride = null
     ): mixed {
-        if (!$this->enabled) {
+        if (!$this->enabled && $this->errorReporter === null) {
             return $callback(null);
         }
 
         [$operation, $route, $serverAddress] = $this->requestDetails($pathOrUrl, $baseUrl, $operationOverride);
+        $startedAt = $this->errorReporter === null ? null : hrtime(true);
+        if (!$this->enabled) {
+            try {
+                return $callback(null);
+            } catch (\Throwable $error) {
+                $this->reportFailure($error, $operation, $route, $serverAddress, $method, $startedAt, null);
+                throw $error;
+            }
+        }
         $attributes = [
             'inttegro.operation.name' => $operation,
             'inttegro.sdk.language' => 'php',
@@ -85,6 +108,7 @@ final class Telemetry
             $span->setAttribute('error.type', $errorType);
             $span->setStatus(StatusCode::STATUS_ERROR);
             $span->addEvent('inttegro.request.failed', ['error.type' => $errorType]);
+            $this->reportFailure($error, $operation, $route, $serverAddress, $method, $startedAt, $span);
             throw $error;
         } finally {
             $scope->detach();
@@ -184,5 +208,93 @@ final class Telemetry
             return 'decode_error';
         }
         return 'unknown_error';
+    }
+
+    private function reportFailure(
+        \Throwable $error,
+        string $operation,
+        ?string $route,
+        string $serverAddress,
+        string $method,
+        ?int $startedAt,
+        ?SpanInterface $span
+    ): void {
+        $reporter = $this->errorReporter;
+        if ($reporter === null) {
+            return;
+        }
+        try {
+            $category = $this->classifyError($error);
+            if ($category === 'canceled') {
+                return;
+            }
+            if ($this->errorReportingPolicy === 'unexpected' && $error instanceof APIError) {
+                if ($error->status < 500 && $error->type !== 'unknown_error') {
+                    return;
+                }
+            }
+
+            $apiError = $error instanceof APIError ? $error : null;
+            $apiContext = $apiError !== null && ($apiError->type || $apiError->code || $apiError->fixCode)
+                ? new APIErrorReportContext($apiError->type, $apiError->code, $apiError->fixCode)
+                : null;
+            $traceContext = null;
+            if ($span !== null && $span->getContext()->isValid()) {
+                $traceContext = new TraceReportContext(
+                    $span->getContext()->getTraceId(),
+                    $span->getContext()->getSpanId()
+                );
+            }
+            $statusCode = $apiError?->status;
+            $durationMs = $startedAt === null ? 0 : max(0, (int)round((hrtime(true) - $startedAt) / 1_000_000));
+            $report = new ErrorReport(
+                schemaVersion: 1,
+                eventId: $this->eventId(),
+                occurredAt: (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d\\TH:i:s.u\\Z'),
+                severity: 'error',
+                category: $category,
+                operation: $operation,
+                sdk: new SDKReportContext('php', Version::VERSION),
+                http: new HTTPReportContext(
+                    strtoupper($method),
+                    $serverAddress,
+                    $durationMs,
+                    $route,
+                    $statusCode,
+                    $apiError?->requestId
+                ),
+                apiError: $apiContext,
+                trace: $traceContext,
+                exceptionType: (new \ReflectionClass($error))->getShortName(),
+                fingerprint: implode(':', [
+                    'inttegro',
+                    'php',
+                    $operation,
+                    $category,
+                    $statusCode ?? 'none',
+                ])
+            );
+            if ($error instanceof InttegroError) {
+                $error->report = $report;
+            }
+            $reporter($report);
+        } catch (\Throwable) {
+            // Report preparation and delivery must never replace the original failure.
+        }
+    }
+
+    private function eventId(): string
+    {
+        $bytes = random_bytes(16);
+        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
+        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
+        $hex = bin2hex($bytes);
+        return sprintf('%s-%s-%s-%s-%s',
+            substr($hex, 0, 8),
+            substr($hex, 8, 4),
+            substr($hex, 12, 4),
+            substr($hex, 16, 4),
+            substr($hex, 20)
+        );
     }
 }
