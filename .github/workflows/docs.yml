@@ -1,0 +1,91 @@
+name: API documentation
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version path to publish, for example v5.3.0
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: api-documentation
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name != 'release' || github.event.release.prerelease == false
+    runs-on: ubuntu-latest
+    env:
+      DOC_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.version }}
+      DOC_DOMAIN: php.inttegro.dev
+      PHPDOCUMENTOR_SHA256: fe1e7c23ba3329aa6f19ac3c807446159a431a195ec5d9163b0c281a15105207
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: "8.3"
+          coverage: none
+
+      - name: Build API documentation
+        run: |
+          curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error \
+            --output phpDocumentor.phar \
+            https://github.com/phpDocumentor/phpDocumentor/releases/download/v3.10.0/phpDocumentor.phar
+          printf '%s  %s\n' "$PHPDOCUMENTOR_SHA256" phpDocumentor.phar | sha256sum --check
+          php phpDocumentor.phar run --config=phpdoc.xml.dist
+
+      - name: Publish versioned documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$DOC_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid documentation version: $DOC_VERSION" >&2
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages:refs/remotes/origin/gh-pages
+            git worktree add pages-site origin/gh-pages
+          else
+            git worktree add --detach pages-site
+            git -C pages-site switch --orphan gh-pages
+            git -C pages-site rm -rf .
+          fi
+
+          rm -rf "pages-site/$DOC_VERSION"
+          mkdir -p "pages-site/$DOC_VERSION"
+          cp -R build/api-docs/. "pages-site/$DOC_VERSION/"
+          printf '{"version":"%s","commit":"%s","repository":"%s"}\n' \
+            "$DOC_VERSION" "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            > "pages-site/$DOC_VERSION/provenance.json"
+          printf '%s\n' "$DOC_DOMAIN" > pages-site/CNAME
+          touch pages-site/.nojekyll
+          printf '%s\n' \
+            '<!doctype html>' \
+            '<html lang="en"><head><meta charset="utf-8">' \
+            "<meta http-equiv=\"refresh\" content=\"0; url=./$DOC_VERSION/\">" \
+            '<meta name="viewport" content="width=device-width, initial-scale=1">' \
+            '<title>Inttegro PHP SDK</title></head>' \
+            "<body><p><a href=\"./$DOC_VERSION/\">Open the latest PHP SDK API documentation</a>.</p></body></html>" \
+            > pages-site/index.html
+
+          git -C pages-site config user.name github-actions[bot]
+          git -C pages-site config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git -C pages-site add --all
+          if git -C pages-site diff --cached --quiet; then
+            echo "Documentation is already current."
+            exit 0
+          fi
+          git -C pages-site commit -m "docs: publish $DOC_VERSION"
+          git -C pages-site push origin HEAD:gh-pages

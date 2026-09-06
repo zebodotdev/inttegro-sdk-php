@@ -4,6 +4,8 @@
 
 The official PHP client for building server-side Inttegro integrations.
 
+[API documentation](https://php.inttegro.dev/) · [Integration guides](https://studio.inttegro.com/sdks/php)
+
 > **Fastest, most modern path:** connect an agent to [Inttegro MCP](https://studio.inttegro.com/inttegro-mcp) at `https://mcp.inttegro.com`, then ask it to run `design_integration`. It will produce an implementation and test plan for your application. Use this SDK when you are ready to connect that plan to your PHP service.
 
 All official Inttegro SDKs expose the same API capabilities. This package adds PHP-native domain values and enum support.
