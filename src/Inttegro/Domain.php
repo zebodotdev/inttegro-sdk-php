@@ -4427,7 +4427,6 @@ final class PurchaseIntent extends DomainValue
 {
     public readonly ?PurchaseIntentActivity $activity;
     public readonly bool $allowVariants;
-    public readonly string $applicationId;
     public readonly string $createdAt;
     public readonly ?string $expiresAt;
     public readonly string $id;
@@ -4446,7 +4445,6 @@ final class PurchaseIntent extends DomainValue
     {
         $this->activity = ValueHydrator::object($data['activity'] ?? null, [PurchaseIntentActivity::class], true);
         $this->allowVariants = ValueHydrator::bool($data['allow_variants'] ?? null, false);
-        $this->applicationId = ValueHydrator::string($data['application_id'] ?? null, false);
         $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
         $this->expiresAt = ValueHydrator::string($data['expires_at'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
@@ -4488,7 +4486,6 @@ final class PurchaseIntentActivity extends DomainValue
 
 final class PurchaseIntentMerchant extends DomainValue
 {
-    public readonly ?string $appId;
     public readonly ?string $appName;
     public readonly ?string $organizationId;
     public readonly ?string $organizationName;
@@ -4496,7 +4493,6 @@ final class PurchaseIntentMerchant extends DomainValue
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->appId = ValueHydrator::string($data['app_id'] ?? null, true);
         $this->appName = ValueHydrator::string($data['app_name'] ?? null, true);
         $this->organizationId = ValueHydrator::string($data['organization_id'] ?? null, true);
         $this->organizationName = ValueHydrator::string($data['organization_name'] ?? null, true);
