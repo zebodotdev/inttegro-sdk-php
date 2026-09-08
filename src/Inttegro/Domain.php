@@ -1709,8 +1709,6 @@ final class FileUploadReceipt extends DomainValue
 
 final class FinancialAccount extends DomainValue
 {
-    public readonly ?string $appCustomerLocalFingerprint;
-    public readonly ?string $appLocalFingerprint;
     public readonly ?string $archivedAt;
     public readonly string $createdAt;
     public readonly string $currency;
@@ -1725,7 +1723,6 @@ final class FinancialAccount extends DomainValue
     public readonly ?string $reference;
     public readonly ?ResourceSupply $supplied;
     public readonly string $type;
-    public readonly ?string $universalFingerprint;
     /** @var array<string, mixed>|null */
     public readonly ?array $verification;
     public readonly ?FinancialAccountBank $bankAccount;
@@ -1738,8 +1735,6 @@ final class FinancialAccount extends DomainValue
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->appCustomerLocalFingerprint = ValueHydrator::string($data['app_customer_local_fingerprint'] ?? null, true);
-        $this->appLocalFingerprint = ValueHydrator::string($data['app_local_fingerprint'] ?? null, true);
         $this->archivedAt = ValueHydrator::string($data['archived_at'] ?? null, true);
         $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
         $this->currency = ValueHydrator::string($data['currency'] ?? null, false);
@@ -1753,7 +1748,6 @@ final class FinancialAccount extends DomainValue
         $this->reference = ValueHydrator::string($data['reference'] ?? null, true);
         $this->supplied = ValueHydrator::object($data['supplied'] ?? null, [ResourceSupply::class], true);
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
-        $this->universalFingerprint = ValueHydrator::string($data['universal_fingerprint'] ?? null, true);
         $this->verification = ValueHydrator::array($data['verification'] ?? null, true);
         $this->bankAccount = ValueHydrator::object($data['bank_account'] ?? null, [FinancialAccountBank::class], true);
         $this->disconnectedAt = ValueHydrator::string($data['disconnected_at'] ?? null, true);
@@ -3249,8 +3243,6 @@ final class OrderShippingLineItemShipping extends DomainValue
 final class PaymentMethod extends DomainValue
 {
     public readonly bool $active;
-    public readonly ?string $appCustomerLocalFingerprint;
-    public readonly ?string $appLocalFingerprint;
     public readonly ?string $archivedAt;
     public readonly ?PaymentMethodBankAccount $bankAccount;
     public readonly string $createdAt;
@@ -3264,7 +3256,6 @@ final class PaymentMethod extends DomainValue
     public readonly ?PaymentMethodOwner $owner;
     public readonly string $type;
     public readonly ?PaymentMethodSupplied $supplied;
-    public readonly ?string $universalFingerprint;
     public readonly ?PaymentMethodVerification $verification;
     public readonly ?string $verifiedAt;
 
@@ -3272,8 +3263,6 @@ final class PaymentMethod extends DomainValue
     public function __construct(array $data)
     {
         $this->active = ValueHydrator::bool($data['active'] ?? null, false);
-        $this->appCustomerLocalFingerprint = ValueHydrator::string($data['app_customer_local_fingerprint'] ?? null, true);
-        $this->appLocalFingerprint = ValueHydrator::string($data['app_local_fingerprint'] ?? null, true);
         $this->archivedAt = ValueHydrator::string($data['archived_at'] ?? null, true);
         $this->bankAccount = ValueHydrator::object($data['bank_account'] ?? null, [PaymentMethodBankAccount::class], true);
         $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
@@ -3286,7 +3275,6 @@ final class PaymentMethod extends DomainValue
         $this->owner = ValueHydrator::object($data['owner'] ?? null, [PaymentMethodOwner::class], true);
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
         $this->supplied = ValueHydrator::object($data['supplied'] ?? null, [PaymentMethodSupplied::class], true);
-        $this->universalFingerprint = ValueHydrator::string($data['universal_fingerprint'] ?? null, true);
         $this->verification = ValueHydrator::object($data['verification'] ?? null, [PaymentMethodVerification::class], true);
         $this->verifiedAt = ValueHydrator::string($data['verified_at'] ?? null, true);
     }
