@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [6.0.1] - 2026-09-08
+
+- Tightened financial-account and payment-method response models to exclude internal platform fields.
+
 ## [6.0.0] - 2026-09-08
 
 - Breaking: removed `PurchaseIntent::$applicationId` and `PurchaseIntentMerchant::$appId` so purchase-intent responses no longer expose application identity.
