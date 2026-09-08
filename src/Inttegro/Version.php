@@ -4,5 +4,5 @@ namespace Inttegro;
 
 class Version
 {
-    public const VERSION = '5.3.0';
+    public const VERSION = '6.0.0';
 }

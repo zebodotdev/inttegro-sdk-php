@@ -112,13 +112,32 @@ Error reporting is completely opt-in. Without `errorReporter`, the SDK does not 
 
 ## Work with the API
 
-The SDK covers orders and checkout, customers, products and prices, purchase intents, payment methods, balances, payouts and refunds, notifications, files, application settings, keys, and country specifications. Resources use camel-case properties such as `purchaseIntents` and `paymentMethods`.
+The SDK covers orders and checkout, customers, products and prices, purchase intents, payment methods, balances, payouts and refunds, notifications, files, application settings, keys, and country specifications.
+
+### Naming conventions
+
+The SDK keeps PHP identifiers distinct from the API's JSON field names:
+
+```php
+$paymentId = $transaction->paymentId;
+
+$order = $inttegro->orders->pay([
+    'order_id' => $orderId,
+    'payment_method_id' => $paymentMethodId,
+]);
+```
+
+- Client resources, method parameters, local variables, and typed domain properties use `camelCase`, such as `purchaseIntents`, `paymentMethods`, and `paymentId`.
+- Native request arrays use the API's documented `snake_case` field names, such as `order_id` and `payment_method_id`.
+- `ArrayAccess`, `toArray()`, and JSON serialization expose the API's `snake_case` wire representation.
+
+Legacy snake_case property reads such as `$transaction->payment_id` remain available for backwards compatibility in the current major version. They are deprecated, are not declared typed properties, and will be removed in the next major release. Use `$transaction->paymentId` in all new code. Values represented by `GenericValue` are the exception: their schemas permit arbitrary object data, so they preserve the API's original keys.
 
 PHP-specific features:
 
 - Native array request payloads, typed amount and price values, and backed enums for public API values.
 - Immutable typed domain values returned directly by every resource operation, with transport envelopes decoded internally.
-- Property and `ArrayAccess` syntax, `toArray()`, and JSON serialization on domain values.
+- Typed property and `ArrayAccess` syntax, `toArray()`, and JSON serialization on domain values.
 - cURL transport with the lightweight OpenTelemetry API for application-owned tracing.
 - Configurable timeout, base URL, and injectable adapter for tests.
 - Structured authentication, rate-limit, network, timeout, and API exceptions.
@@ -131,7 +150,7 @@ Packagist versions resolve to immutable Git commit references. The corresponding
 
 ```bash
 sha256sum --check SHA256SUMS
-gh attestation verify inttegro-sdk-php-5.2.0.tar.gz \
+gh attestation verify inttegro-sdk-php-6.0.0.tar.gz \
   --repo zebodotdev/inttegro-sdk-php
 ```
 

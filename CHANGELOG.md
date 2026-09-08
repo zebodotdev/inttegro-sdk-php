@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [6.0.0] - 2026-09-08
+
+- Breaking: removed `PurchaseIntent::$applicationId` and `PurchaseIntentMerchant::$appId` so purchase-intent responses no longer expose application identity.
+- Documented `camelCase` as the canonical PHP identifier and typed-property convention, with `snake_case` reserved for native request arrays and serialized API data.
+- Deprecated legacy snake_case property aliases ahead of their removal in the next major release.
+- Added versioned PHP API-reference publishing at `php.inttegro.dev`.
+
 ## [5.3.0] - 2026-09-06
 
 - Added opt-in, typed error reporting to application-owned collectors with privacy-safe payloads, stable fingerprints, isolated reporter failures, and no reporting work when unconfigured.

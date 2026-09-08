@@ -29,12 +29,24 @@ abstract class DomainValue implements ArrayAccess, JsonSerializable
         return $this->toArray();
     }
 
+    /**
+     * Reads a legacy snake_case alias for a declared camelCase property.
+     *
+     * @deprecated Use the declared camelCase property instead. Snake_case property
+     *             aliases will be removed in the next major release.
+     */
     public function __get(string $name): mixed
     {
         $camel = self::camel($name);
         return property_exists($this, $camel) ? $this->{$camel} : null;
     }
 
+    /**
+     * Checks a legacy snake_case alias for a declared camelCase property.
+     *
+     * @deprecated Use the declared camelCase property instead. Snake_case property
+     *             aliases will be removed in the next major release.
+     */
     public function __isset(string $name): bool
     {
         $camel = self::camel($name);
