@@ -271,7 +271,7 @@ final class ClientTest extends TestCase
         $this->assertSame('ghana_bank_account', $bankAccount->type);
     }
 
-    public function test_balance_transactions_expose_matching_semantic_sources(): void
+    public function test_balance_transactions_use_camel_case_properties_and_snake_case_wire_keys(): void
     {
         $adapter = function ($method, $url, $headers, $payload) {
             unset($method, $headers, $payload);
@@ -311,14 +311,32 @@ final class ClientTest extends TestCase
         $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
         $payment = $client->balanceTransactions->lookup('bt_payment');
         $this->assertSame('payment', $payment->type);
-        $this->assertSame('py_123', $payment->payment_id);
-        $this->assertFalse(isset($payment->refund_id));
+        $this->assertSame('py_123', $payment->paymentId);
+        $this->assertNull($payment->refundId);
+        $this->assertSame('py_123', $payment['payment_id']);
+        $this->assertArrayHasKey('payment_id', $payment->toArray());
+        $this->assertArrayNotHasKey('paymentId', $payment->toArray());
         $this->assertSame(2500, $payment->amount->value);
 
         $refund = $client->balanceTransactions->page(['page_number' => 1])->transactions[0];
         $this->assertSame('refund', $refund->type);
-        $this->assertSame('rf_123', $refund->refund_id);
-        $this->assertFalse(isset($refund->payment_id));
+        $this->assertSame('rf_123', $refund->refundId);
+        $this->assertNull($refund->paymentId);
+    }
+
+    public function test_snake_case_property_aliases_remain_available_during_deprecation(): void
+    {
+        $transaction = \Inttegro\BalanceTransaction::fromArray([
+            'id' => 'bt_payment',
+            'type' => 'payment',
+            'payment_id' => 'py_123',
+            'order_id' => 'or_123',
+            'amount' => ['currency' => 'GHS', 'value' => 2500],
+            'created_at' => '2026-08-31T12:00:00Z',
+        ]);
+
+        $this->assertSame($transaction->paymentId, $transaction->payment_id);
+        $this->assertSame(isset($transaction->paymentId), isset($transaction->payment_id));
     }
 
     public function test_orders_return_domain_models_instead_of_transport_envelopes(): void
