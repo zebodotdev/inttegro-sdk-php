@@ -2568,6 +2568,31 @@ final class Order extends DomainValue
     {
         return new static($data);
     }
+
+    public function isPaid(): bool
+    {
+        return $this->status === OrderStatus::Paid->value || $this->paidAt !== null;
+    }
+
+    public function requiresPayment(): bool
+    {
+        return $this->status === OrderStatus::RequiresPayment->value;
+    }
+
+    public function isTerminal(): bool
+    {
+        return in_array($this->status, [
+            OrderStatus::Paid->value,
+            OrderStatus::Completed->value,
+            OrderStatus::Canceled->value,
+            OrderStatus::Expired->value,
+        ], true);
+    }
+
+    public function requiredPaymentAction(): ?PaymentNextAction
+    {
+        return $this->payment?->requiredAction();
+    }
 }
 
 final class OrderAddress extends DomainValue
@@ -2987,6 +3012,31 @@ final class Payment extends DomainValue
     {
         return new static($data);
     }
+
+    public function isPaid(): bool
+    {
+        return $this->status === PaymentStatus::Paid->value;
+    }
+
+    public function requiresAction(): bool
+    {
+        return $this->status === PaymentStatus::RequiresAction->value;
+    }
+
+    public function isTerminal(): bool
+    {
+        return in_array($this->status, [
+            PaymentStatus::Paid->value,
+            PaymentStatus::Canceled->value,
+            PaymentStatus::Expired->value,
+            PaymentStatus::Failed->value,
+        ], true);
+    }
+
+    public function requiredAction(): ?PaymentNextAction
+    {
+        return $this->requiresAction() ? $this->nextAction : null;
+    }
 }
 
 final class PaymentAttempt extends DomainValue
@@ -3378,6 +3428,21 @@ final class PaymentMethod extends DomainValue
     public static function fromArray(array $data): static
     {
         return new static($data);
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archivedAt !== null;
+    }
+
+    public function isVerified(): bool
+    {
+        return $this->verifiedAt !== null;
+    }
+
+    public function isReusable(): bool
+    {
+        return $this->active && !$this->isArchived() && $this->ephemeral !== true;
     }
 }
 
@@ -4321,6 +4386,21 @@ final class Product extends DomainValue
     {
         return new static($data);
     }
+
+    public function isArchived(): bool
+    {
+        return $this->archivedAt !== null;
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->active && !$this->isArchived();
+    }
+
+    public function wasEverPublished(): bool
+    {
+        return $this->publishedAt !== null;
+    }
 }
 
 final class ProductAttribute extends DomainValue
@@ -4648,6 +4728,22 @@ final class PurchaseIntent extends DomainValue
     public static function fromArray(array $data): static
     {
         return new static($data);
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === PurchaseIntentStatus::Active;
+    }
+
+    public function isSingleUse(): bool
+    {
+        return $this->usage->singleUse === true;
+    }
+
+    public function usedOrderId(): ?string
+    {
+        $id = $this->isSingleUse() ? $this->usage->order?->id : null;
+        return $id === null || $id === '' ? null : $id;
     }
 }
 
