@@ -47,9 +47,6 @@ final class ClientTest extends TestCase
         '/checkout/request_confirmation',
         '/checkout/confirm_payment',
     ];
-    private const LEGACY_COMPATIBILITY_PATHS = [
-        '/orders/refund',
-    ];
 
     public function test_telemetry_does_not_name_unknown_routes_from_resource_ids(): void
     {
@@ -495,7 +492,6 @@ final class ClientTest extends TestCase
             $this->openApiSpecPaths(),
             self::EXTERNALLY_SUPPLIED_CAPABILITY_PATHS,
             self::CLIENT_CHECKOUT_PATHS,
-            self::LEGACY_COMPATIBILITY_PATHS,
             $this->implementedSdkPaths()
         ));
 
