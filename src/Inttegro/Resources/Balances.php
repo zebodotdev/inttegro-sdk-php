@@ -15,6 +15,6 @@ class Balances
 
     public function get(): \Inttegro\BalanceSnapshot
     {
-        return $this->http->postValue('/balances', \Inttegro\BalanceSnapshot::class, []);
+        return $this->http->postResource('/balances', \Inttegro\BalanceSnapshot::class, 'balances', []);
     }
 }

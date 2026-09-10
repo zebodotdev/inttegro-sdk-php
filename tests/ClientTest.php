@@ -110,7 +110,11 @@ final class ClientTest extends TestCase
             $requests[] = compact('method', 'url', 'headers', 'payload');
             return [
                 'status' => 200,
-                'body' => json_encode(['order' => ['id' => 'or_1', 'status' => 'preparing']]),
+                'body' => json_encode(['order' => [
+                    'id' => 'or_1',
+                    'status' => 'preparing',
+                    'initiated_at' => '2026-09-10T10:00:00Z',
+                ]]),
                 'headers' => ['content-type' => 'application/json', 'x-request-id' => 'req_123'],
             ];
         };
@@ -230,6 +234,48 @@ final class ClientTest extends TestCase
         $this->assertSame('{"status":"pending"}', json_encode(['status' => UploadRequestStatus::Pending]));
     }
 
+    public function test_purchase_intent_exposes_nested_response_types(): void
+    {
+        $intent = \Inttegro\PurchaseIntent::fromArray([
+            'activity' => [
+                'recent' => [[
+                    'created_at' => '2026-09-09T12:01:00Z',
+                    'id' => 'saleevt_123',
+                    'purchase_intent_id' => 'sale_123',
+                    'type' => 'viewed',
+                    'visitor' => ['ip_address' => '203.0.113.7'],
+                ]],
+            ],
+            'allow_variants' => false,
+            'created_at' => '2026-09-09T12:00:00Z',
+            'id' => 'sale_123',
+            'merchant' => ['organization_name' => 'Tea House Ltd'],
+            'product' => [
+                'active' => true,
+                'created_at' => '2026-09-09T11:00:00Z',
+                'dimensions' => ['digital' => ['bytes' => 1024]],
+                'id' => 'prod_123',
+                'name' => 'Tea guide',
+                'type' => 'digital',
+            ],
+            'quantity' => ['min' => 1],
+            'status' => 'active',
+            'usage' => [
+                'order' => ['created_at' => '2026-09-09T12:02:00Z', 'id' => 'or_123'],
+                'single_use' => true,
+            ],
+        ]);
+
+        $this->assertSame('203.0.113.7', $intent->activity?->recent[0]->visitor?->ipAddress);
+        $this->assertSame('Tea House Ltd', $intent->merchant?->organizationName);
+        $this->assertSame(1024.0, $intent->product?->dimensions?->digital?->bytes);
+        $this->assertSame('or_123', $intent->usage->order?->id);
+        $this->assertSame(\Inttegro\PurchaseIntentStatus::Active, $intent->status);
+        $this->assertSame(\Inttegro\PurchaseIntentActivityType::Viewed, $intent->activity?->recent[0]->type);
+        $this->assertInstanceOf(\DateTimeImmutable::class, $intent->createdAt);
+        $this->assertSame('2026-09-09T12:00:00.000+00:00', $intent->toArray()['created_at']);
+    }
+
     public function test_amount_and_price_types_keep_wire_shapes_flat(): void
     {
         $amount = new AmountParams(Currency::GHS, 3005);
@@ -324,21 +370,6 @@ final class ClientTest extends TestCase
         $this->assertNull($refund->paymentId);
     }
 
-    public function test_snake_case_property_aliases_remain_available_during_deprecation(): void
-    {
-        $transaction = \Inttegro\BalanceTransaction::fromArray([
-            'id' => 'bt_payment',
-            'type' => 'payment',
-            'payment_id' => 'py_123',
-            'order_id' => 'or_123',
-            'amount' => ['currency' => 'GHS', 'value' => 2500],
-            'created_at' => '2026-08-31T12:00:00Z',
-        ]);
-
-        $this->assertSame($transaction->paymentId, $transaction->payment_id);
-        $this->assertSame(isset($transaction->paymentId), isset($transaction->payment_id));
-    }
-
     public function test_orders_return_domain_models_instead_of_transport_envelopes(): void
     {
         $adapter = function ($method, $url, $headers, $payload) {
@@ -349,15 +380,31 @@ final class ClientTest extends TestCase
                     'page' => [
                         'number' => 0,
                         'size' => 1,
-                        'orders' => [['id' => 'or_1', 'status' => 'paid']],
+                        'orders' => [[
+                            'id' => 'or_1',
+                            'status' => 'paid',
+                            'initiated_at' => '2026-09-10T10:00:00Z',
+                        ]],
                     ],
                 ],
-                '/orders/refund' => ['refund' => ['id' => 'rf_1', 'status' => 'pending']],
+                '/refunds/create' => ['refund' => [
+                    'id' => 'rf_1',
+                    'status' => 'pending',
+                    'created_at' => '2026-09-10T10:00:00Z',
+                ]],
                 '/orders/send_invoice' => [
-                    'order' => ['id' => 'or_1', 'status' => 'paid'],
+                    'order' => [
+                        'id' => 'or_1',
+                        'status' => 'paid',
+                        'initiated_at' => '2026-09-10T10:00:00Z',
+                    ],
                     'delivery' => ['document_kind' => 'invoice', 'sent_channels' => ['sms']],
                 ],
-                default => ['order' => ['id' => 'or_1', 'status' => 'paid']],
+                default => ['order' => [
+                    'id' => 'or_1',
+                    'status' => 'paid',
+                    'initiated_at' => '2026-09-10T10:00:00Z',
+                ]],
             };
             return [
                 'status' => 200,
@@ -369,7 +416,7 @@ final class ClientTest extends TestCase
 
         $order = $client->orders->lookup('or_1');
         $page = $client->orders->page(['page_size' => 1]);
-        $refund = $client->orders->refund([
+        $refund = $client->refunds->create([
             'order_id' => 'or_1',
             'reason' => 'requested_by_customer',
             'line_items' => [],
@@ -389,6 +436,7 @@ final class ClientTest extends TestCase
         $order = Order::fromArray([
             'id' => 'or_1',
             'status' => 'requires_payment',
+            'initiated_at' => '2026-09-02T12:00:00Z',
             'payment' => [
                 'id' => 'py_1',
                 'status' => 'requires_action',
@@ -401,7 +449,10 @@ final class ClientTest extends TestCase
                     'type' => 'mobile_money',
                     'verified' => true,
                 ],
-                'latest_attempt' => ['status' => 'initiated'],
+                'latest_attempt' => [
+                    'status' => 'initiated',
+                    'initiated_at' => '2026-09-02T12:00:00Z',
+                ],
                 'initiated_at' => '2026-09-02T12:00:00Z',
             ],
         ]);
@@ -454,19 +505,84 @@ final class ClientTest extends TestCase
     public function test_paths_cover_spec(): void
     {
         $requests = [];
-        $adapter = function ($method, $url, $headers, $payload) use (&$requests) {
+        $purchaseIntent = [
+            'allow_variants' => false,
+            'created_at' => '2026-09-09T12:00:00Z',
+            'id' => 'sale_123',
+            'quantity' => ['min' => 1],
+            'status' => 'active',
+            'usage' => ['multi_use' => true],
+        ];
+        $timestampedStub = [
+            'ok' => true,
+            'as_of' => '2026-09-10T10:00:00Z',
+            'attempted_at' => '2026-09-10T10:00:00Z',
+            'created_at' => '2026-09-10T10:00:00Z',
+            'enabled_at' => '2026-09-10T10:00:00Z',
+            'execute_after' => '2026-09-10T10:00:00Z',
+            'expires_at' => '2026-09-10T10:00:00Z',
+            'initialized_at' => '2026-09-10T10:00:00Z',
+            'initiated_at' => '2026-09-10T10:00:00Z',
+            'issued_at' => '2026-09-10T10:00:00Z',
+            'occurred_at' => '2026-09-10T10:00:00Z',
+            'send_after' => '2026-09-10T10:00:00Z',
+            'supplied_at' => '2026-09-10T10:00:00Z',
+            'updated_at' => '2026-09-10T10:00:00Z',
+            'valid_until' => '2026-09-10T10:00:00Z',
+        ];
+        $adapter = function ($method, $url, $headers, $payload) use (&$requests, $purchaseIntent, $timestampedStub) {
             $requests[] = compact('method', 'url', 'headers', 'payload');
             $path = parse_url($url, PHP_URL_PATH) ?: '';
             $body = match ($path) {
-                '/orders/refund' => ['refund' => ['id' => 'rf_1']],
+                '/refunds/create' => ['refund' => [
+                    'id' => 'rf_1',
+                    'created_at' => '2026-09-10T10:00:00Z',
+                ]],
                 '/orders/page' => ['page' => ['number' => 0, 'size' => 0, 'orders' => []]],
                 '/orders/send_invoice', '/orders/send_receipt' => [
-                    'order' => ['id' => 'or_1', 'status' => 'preparing'],
+                    'order' => [
+                        'id' => 'or_1',
+                        'status' => 'preparing',
+                        'initiated_at' => '2026-09-10T10:00:00Z',
+                    ],
                     'delivery' => [],
                 ],
+                '/balances' => [
+                    'balances' => [
+                        'ghs' => [
+                            'available' => ['amount' => 1000],
+                            'includes_transactions_before' => '2026-09-09T12:00:00Z',
+                            'pending' => ['amount' => 200],
+                            'refund' => ['amount' => 50],
+                            'reserved' => ['amount' => 100],
+                        ],
+                    ],
+                ],
+                '/purchase_intents/page' => [
+                    'page' => ['number' => 1, 'size' => 0, 'purchase_intents' => []],
+                ],
+                '/keys/usage' => [
+                    'key' => ['issued_at' => '2026-09-10T10:00:00Z'],
+                    'usage' => [],
+                ],
+                '/otp/verify' => [
+                    'transaction' => [
+                        'expires_at' => '2026-09-10T10:05:00Z',
+                        'initiated_at' => '2026-09-10T10:00:00Z',
+                    ],
+                    'verification_attempt' => [
+                        'attempted_at' => '2026-09-10T10:01:00Z',
+                    ],
+                ],
                 default => str_starts_with($path, '/orders/')
-                    ? ['order' => ['id' => 'or_1', 'status' => 'preparing']]
-                    : ['ok' => true],
+                    ? ['order' => [
+                        'id' => 'or_1',
+                        'status' => 'preparing',
+                        'initiated_at' => '2026-09-10T10:00:00Z',
+                    ]]
+                    : (str_starts_with($path, '/purchase_intents/')
+                    ? ['purchase_intent' => $purchaseIntent]
+                        : $timestampedStub),
             };
             return [
                 'status' => 200,
@@ -478,7 +594,6 @@ final class ClientTest extends TestCase
         $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
 
         $client->orders->create(['number' => 'ORDER-1']);
-        $client->orders->createLegacy(['number' => 'ORDER-2']);
         $client->orders->lookup('or_1');
         $client->orders->update(['order_id' => 'or_1', 'number' => 'ORDER-1-REV2']);
         $client->orders->pay(['order_id' => 'or_1']);
@@ -489,15 +604,6 @@ final class ClientTest extends TestCase
         $client->orders->sendReceipt(['order_id' => 'or_1']);
         $client->orders->complete(['order_id' => 'or_1']);
         $client->orders->cancel('or_1');
-        $refundPayload = [
-            'order_id' => 'or_1',
-            'reason' => 'requested_by_customer',
-            'line_items' => [[
-                'order_line_item_id' => 'oli_1',
-                'refund_amount' => ['currency' => 'ghs', 'value' => 100],
-            ]],
-        ];
-        $client->orders->refund($refundPayload);
         $client->orders->page([]);
 
         $client->paymentMethods->tokenize(['type' => 'mobile_money']);
@@ -607,7 +713,7 @@ final class ClientTest extends TestCase
         $client->chimes->schedule([
             'recipients' => ['+233544998605'],
             'full_message' => 'later',
-            'send_after' => '2026-01-18T10:00:00Z',
+            'send_after' => new \DateTimeImmutable('2026-01-18T10:00:00Z'),
         ]);
         $client->chimes->broadcast([
             'recipients' => ['+233544998605'],
@@ -646,12 +752,12 @@ final class ClientTest extends TestCase
         $client->purchaseIntents->page(['page_number' => 1, 'page_size' => 20]);
 
         $client->spec->countries();
-        $client->balances->get();
+        $balance = $client->balances->get();
+        $this->assertSame(1000, $balance->ghs->available->amount);
 
         $paths = array_map(fn($req) => parse_url($req['url'], PHP_URL_PATH), $requests);
         $expected = [
             '/orders/create',
-            '/orders/new',
             '/orders/lookup',
             '/orders/update',
             '/orders/pay',
@@ -662,7 +768,6 @@ final class ClientTest extends TestCase
             '/orders/send_receipt',
             '/orders/complete',
             '/orders/cancel',
-            '/orders/refund',
             '/orders/page',
             '/payment_methods/tokenize',
             '/payment_methods/verify',
@@ -752,36 +857,11 @@ final class ClientTest extends TestCase
         ];
 
         $this->assertSame($expected, $paths);
-    }
-
-    public function test_order_refund_alias_preserves_create_refund_shape(): void
-    {
-        $requests = [];
-        $adapter = function ($method, $url, $headers, $payload) use (&$requests) {
-            $requests[] = compact('method', 'url', 'headers', 'payload');
-            return [
-                'status' => 200,
-                'body' => json_encode(['refund' => ['id' => 'rf_1']]),
-                'headers' => ['content-type' => 'application/json'],
-            ];
-        };
-        $payload = [
-            'order_id' => 'or_1',
-            'reason' => 'requested_by_customer',
-            'request_meta' => ['idempotency_key' => 'refund-alias-1'],
-            'line_items' => [[
-                'order_line_item_id' => 'oli_1',
-                'refund_amount' => ['currency' => 'ghs', 'value' => 100],
-            ]],
-        ];
-
-        $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
-        $response = $client->orders->refund($payload, 'refund-alias-header-1');
-
-        $this->assertSame('/orders/refund', parse_url($requests[0]['url'], PHP_URL_PATH));
-        $this->assertSame($payload, json_decode($requests[0]['payload'], true));
-        $this->assertContains('Idempotency-Key: refund-alias-header-1', $requests[0]['headers']);
-        $this->assertSame('rf_1', $response->id);
+        $scheduleRequest = $requests[array_search('/chimes/schedule', $paths, true)];
+        $this->assertSame(
+            '2026-01-18T10:00:00.000+00:00',
+            json_decode($scheduleRequest['payload'], true)['send_after']
+        );
     }
 
     public function test_authentication_error_is_raised(): void
@@ -815,7 +895,11 @@ final class ClientTest extends TestCase
             $requests[] = compact('method', 'url', 'headers', 'payload');
             return [
                 'status' => 200,
-                'body' => json_encode(['order' => ['id' => 'or_1', 'status' => 'preparing']]),
+                'body' => json_encode(['order' => [
+                    'id' => 'or_1',
+                    'status' => 'preparing',
+                    'initiated_at' => '2026-09-10T10:00:00Z',
+                ]]),
                 'headers' => ['content-type' => 'application/json'],
             ];
         };
@@ -835,7 +919,11 @@ final class ClientTest extends TestCase
             $requests[] = compact('method', 'url', 'headers', 'payload');
             return [
                 'status' => 200,
-                'body' => json_encode(['order' => ['id' => 'or_1', 'status' => 'preparing']]),
+                'body' => json_encode(['order' => [
+                    'id' => 'or_1',
+                    'status' => 'preparing',
+                    'initiated_at' => '2026-09-10T10:00:00Z',
+                ]]),
                 'headers' => ['content-type' => 'application/json'],
             ];
         };
@@ -855,7 +943,11 @@ final class ClientTest extends TestCase
             $requests[] = compact('method', 'url', 'headers', 'payload');
             return [
                 'status' => 200,
-                'body' => json_encode(['ok' => true]),
+                'body' => json_encode([
+                    'id' => 'mt_1',
+                    'created_at' => '2026-09-10T10:00:00Z',
+                    'updated_at' => '2026-09-10T10:00:00Z',
+                ]),
                 'headers' => ['content-type' => 'application/json'],
             ];
         };

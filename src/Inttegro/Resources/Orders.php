@@ -6,7 +6,6 @@ use Inttegro\HttpClient;
 use Inttegro\Order;
 use Inttegro\OrderDocumentDeliveryResult;
 use Inttegro\OrderPage;
-use Inttegro\Refund;
 
 /**
  * Orders resource for creating orders, processing payments, and managing order lifecycle.
@@ -99,12 +98,6 @@ class Orders
     public function create(array $payload): Order
     {
         return $this->http->postResource('/orders/create', Order::class, 'order', $payload);
-    }
-
-    /** Compatibility route for POST /orders/new. Prefer create() for the canonical /orders/create endpoint. */
-    public function createLegacy(array $payload): Order
-    {
-        return $this->http->postResource('/orders/new', Order::class, 'order', $payload);
     }
 
     /**
@@ -278,7 +271,7 @@ class Orders
      *     'GKj7A8lM5wEGRUvbqpI4bkDFsQvpqVyh5fqePNnb'
      * );
      *
-     * echo "Order finalized at: {$order->sealedAt}\n";
+     * echo "Order finalized at: " . $order->sealedAt?->format(DATE_RFC3339) . "\n";
      * ```
      *
      * @see https://studio.inttegro.com/order-lifecycle for order states
@@ -336,7 +329,7 @@ class Orders
      *     'order_id' => 'GKj7A8lM5wEGRUvbqpI4bkDFsQvpqVyh5fqePNnb'
      * ]);
      *
-     * echo "Order completed at: {$order->completedAt}\n";
+     * echo "Order completed at: " . $order->completedAt?->format(DATE_RFC3339) . "\n";
      * ```
      *
      * @see https://studio.inttegro.com/order-lifecycle for order states
@@ -374,39 +367,6 @@ class Orders
             'order_id' => $orderId,
             'request_meta' => $requestMeta ?: $this->stableOrderRequestMeta('cancel', $orderId),
         ]);
-    }
-
-    /**
-     * Create a refund through the `/orders/refund` compatibility alias.
-     *
-     * This accepts the same line-item payload as `$client->refunds->create()` and returns
-     * the created Refund directly. New integrations should use the canonical method.
-     *
-     * @param array $payload Create-refund payload containing order_id, reason, and line_items
-     * @param string|null $idempotencyKey Optional key for safely retrying the request
-     *
-     * @return Refund The created refund
-     *
-     * @example Refund an order
-     * ```php
-     * $refund = $client->orders->refund([
-     *     'order_id' => 'or_0123456789abcdefghijklmnopqrstuvwxyzABCD',
-     *     'reason' => 'requested_by_customer',
-     *     'line_items' => [[
-     *         'order_line_item_id' => 'oli_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN',
-     *         'refund_amount' => ['currency' => 'ghs', 'value' => 2500],
-     *     ]],
-     * ]);
-     *
-     * echo "Refund created: {$refund->id}\n";
-     * ```
-     */
-    public function refund(array $payload, ?string $idempotencyKey = null): Refund
-    {
-        return $this->http->postResource('/orders/refund', Refund::class, 'refund',
-            $payload,
-            $idempotencyKey ? ['Idempotency-Key' => $idempotencyKey] : []
-        );
     }
 
     /**

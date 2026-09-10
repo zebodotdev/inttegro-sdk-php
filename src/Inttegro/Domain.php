@@ -4,6 +4,8 @@ namespace Inttegro;
 
 use ArrayAccess;
 use BackedEnum;
+use DateTimeImmutable;
+use DateTimeInterface;
 use Inttegro\Money\Amount;
 use JsonSerializable;
 use LogicException;
@@ -29,38 +31,14 @@ abstract class DomainValue implements ArrayAccess, JsonSerializable
         return $this->toArray();
     }
 
-    /**
-     * Reads a legacy snake_case alias for a declared camelCase property.
-     *
-     * @deprecated Use the declared camelCase property instead. Snake_case property
-     *             aliases will be removed in the next major release.
-     */
-    public function __get(string $name): mixed
-    {
-        $camel = self::camel($name);
-        return property_exists($this, $camel) ? $this->{$camel} : null;
-    }
-
-    /**
-     * Checks a legacy snake_case alias for a declared camelCase property.
-     *
-     * @deprecated Use the declared camelCase property instead. Snake_case property
-     *             aliases will be removed in the next major release.
-     */
-    public function __isset(string $name): bool
-    {
-        $camel = self::camel($name);
-        return property_exists($this, $camel) && $this->{$camel} !== null;
-    }
-
     public function offsetExists(mixed $offset): bool
     {
-        return is_string($offset) && isset($this->{$offset});
+        return is_string($offset) && isset($this->{self::camel($offset)});
     }
 
     public function offsetGet(mixed $offset): mixed
     {
-        return is_string($offset) ? $this->{$offset} : null;
+        return is_string($offset) ? $this->{self::camel($offset)} : null;
     }
 
     public function offsetSet(mixed $offset, mixed $value): void
@@ -73,20 +51,23 @@ abstract class DomainValue implements ArrayAccess, JsonSerializable
         throw new LogicException('Inttegro domain values are immutable.');
     }
 
-    private static function camel(string $value): string
-    {
-        return lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', $value))));
-    }
-
     private static function snake(string $value): string
     {
         return strtolower((string) preg_replace('/(?<!^)[A-Z]/', '_$0', $value));
+    }
+
+    private static function camel(string $value): string
+    {
+        return lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', $value))));
     }
 
     private static function export(mixed $value): mixed
     {
         if ($value instanceof self) {
             return $value->toArray();
+        }
+        if ($value instanceof DateTimeInterface) {
+            return $value->format(DATE_RFC3339_EXTENDED);
         }
         if ($value instanceof BackedEnum) {
             return $value->value;
@@ -105,6 +86,28 @@ final class ValueHydrator
     public static function string(mixed $value, bool $nullable): ?string
     {
         return $value === null && $nullable ? null : (string) ($value ?? '');
+    }
+
+    /** @return ($nullable is true ? DateTimeImmutable|null : DateTimeImmutable) */
+    public static function dateTime(mixed $value, bool $nullable): ?DateTimeImmutable
+    {
+        if ($value === null && $nullable) {
+            return null;
+        }
+        if ($value instanceof DateTimeImmutable) {
+            return $value;
+        }
+        if ($value instanceof DateTimeInterface) {
+            return DateTimeImmutable::createFromInterface($value);
+        }
+        if (!is_string($value) || $value === '' || preg_match('/(?:Z|[+-]\d{2}:\d{2})$/', $value) !== 1) {
+            throw new \UnexpectedValueException('Expected an ISO-8601 timestamp with a UTC offset.');
+        }
+        try {
+            return new DateTimeImmutable($value);
+        } catch (\Exception $error) {
+            throw new \UnexpectedValueException('Invalid ISO-8601 timestamp.', previous: $error);
+        }
     }
 
     /** @return ($nullable is true ? int|null : int) */
@@ -233,9 +236,9 @@ final class Application extends DomainValue
     public readonly string $name;
     public readonly ?string $alias;
     public readonly ?string $description;
-    public readonly string $createdAt;
-    public readonly ?string $updatedAt;
-    public readonly ?string $archivedAt;
+    public readonly DateTimeImmutable $createdAt;
+    public readonly ?DateTimeImmutable $updatedAt;
+    public readonly ?DateTimeImmutable $archivedAt;
     public readonly ?ApplicationSecretKey $secretKey;
     public readonly ?ApplicationRelationship $relationship;
 
@@ -246,9 +249,9 @@ final class Application extends DomainValue
         $this->name = ValueHydrator::string($data['name'] ?? null, false);
         $this->alias = ValueHydrator::string($data['alias'] ?? null, true);
         $this->description = ValueHydrator::string($data['description'] ?? null, true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, true);
-        $this->archivedAt = ValueHydrator::string($data['archived_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, true);
+        $this->archivedAt = ValueHydrator::dateTime($data['archived_at'] ?? null, true);
         $this->secretKey = ValueHydrator::object($data['secret_key'] ?? null, [ApplicationSecretKey::class], true);
         $this->relationship = ValueHydrator::object($data['relationship'] ?? null, [ApplicationRelationship::class], true);
     }
@@ -274,7 +277,7 @@ final class ApplicationRelationship extends DomainValue
     public readonly string $childStanding;
     public readonly ApplicationRelationshipPolicy $relationshipPolicy;
     public readonly bool $retainedCreatorAuthorityExists;
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -291,7 +294,7 @@ final class ApplicationRelationship extends DomainValue
         $this->childStanding = ValueHydrator::string($data['child_standing'] ?? null, false);
         $this->relationshipPolicy = ValueHydrator::object($data['relationship_policy'] ?? null, [ApplicationRelationshipPolicy::class], false);
         $this->retainedCreatorAuthorityExists = ValueHydrator::bool($data['retained_creator_authority_exists'] ?? null, false);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
     }
 
     /** @param array<string, mixed> $data */
@@ -326,7 +329,7 @@ final class ApplicationSecretKey extends DomainValue
 {
     public readonly ?string $id;
     public readonly ?string $tokenType;
-    public readonly ?string $issuedAt;
+    public readonly ?DateTimeImmutable $issuedAt;
     public readonly ?string $token;
 
     /** @param array<string, mixed> $data */
@@ -334,7 +337,7 @@ final class ApplicationSecretKey extends DomainValue
     {
         $this->id = ValueHydrator::string($data['id'] ?? null, true);
         $this->tokenType = ValueHydrator::string($data['token_type'] ?? null, true);
-        $this->issuedAt = ValueHydrator::string($data['issued_at'] ?? null, true);
+        $this->issuedAt = ValueHydrator::dateTime($data['issued_at'] ?? null, true);
         $this->token = ValueHydrator::string($data['token'] ?? null, true);
     }
 
@@ -348,14 +351,15 @@ final class ApplicationSecretKey extends DomainValue
 final class BalanceTransaction extends DomainValue
 {
     public readonly BalanceTransactionAmount $amount;
-    public readonly ?string $availableAt;
-    public readonly ?string $claimedAt;
-    public readonly string $createdAt;
+    public readonly ?DateTimeImmutable $availableAt;
+    public readonly ?DateTimeImmutable $claimedAt;
+    public readonly DateTimeImmutable $createdAt;
     public readonly string $id;
     public readonly string $orderId;
-    public readonly ?string $paidAt;
+    public readonly ?DateTimeImmutable $paidAt;
     public readonly ?string $paymentId;
     public readonly ?string $payoutId;
+    public readonly ?PaymentPayoutConfiguration $payoutConfiguration;
     public readonly ?string $refundId;
     public readonly string $type;
 
@@ -363,14 +367,15 @@ final class BalanceTransaction extends DomainValue
     public function __construct(array $data)
     {
         $this->amount = ValueHydrator::object($data['amount'] ?? null, [BalanceTransactionAmount::class], false);
-        $this->availableAt = ValueHydrator::string($data['available_at'] ?? null, true);
-        $this->claimedAt = ValueHydrator::string($data['claimed_at'] ?? null, true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->availableAt = ValueHydrator::dateTime($data['available_at'] ?? null, true);
+        $this->claimedAt = ValueHydrator::dateTime($data['claimed_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->orderId = ValueHydrator::string($data['order_id'] ?? null, false);
-        $this->paidAt = ValueHydrator::string($data['paid_at'] ?? null, true);
+        $this->paidAt = ValueHydrator::dateTime($data['paid_at'] ?? null, true);
         $this->paymentId = ValueHydrator::string($data['payment_id'] ?? null, true);
         $this->payoutId = ValueHydrator::string($data['payout_id'] ?? null, true);
+        $this->payoutConfiguration = ValueHydrator::object($data['payout_configuration'] ?? null, [PaymentPayoutConfiguration::class], true);
         $this->refundId = ValueHydrator::string($data['refund_id'] ?? null, true);
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
     }
@@ -445,39 +450,39 @@ final class BroadcastCancelDetail extends DomainValue
     /** @var list<string>|null */
     public readonly ?array $chimeIds;
     public readonly string $content;
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     /** @var list<string>|null */
     public readonly ?array $customerIds;
     public readonly ?ChimeEmailMessage $email;
     /** @var list<BroadcastError>|null */
     public readonly ?array $errors;
-    public readonly ?string $executedAt;
+    public readonly ?DateTimeImmutable $executedAt;
     public readonly string $id;
     public readonly ?string $idempotencyKey;
     public readonly ?string $purpose;
     /** @var list<string> */
     public readonly array $recipients;
-    public readonly string $sendAfter;
+    public readonly DateTimeImmutable $sendAfter;
     public readonly string $senderId;
-    public readonly ?string $canceledAt;
+    public readonly ?DateTimeImmutable $canceledAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->chimeIds = ValueHydrator::array($data['chime_ids'] ?? null, true);
         $this->content = ValueHydrator::string($data['content'] ?? null, false);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customerIds = ValueHydrator::array($data['customer_ids'] ?? null, true);
         $this->email = ValueHydrator::object($data['email'] ?? null, [ChimeEmailMessage::class], true);
         $this->errors = ValueHydrator::objects($data['errors'] ?? null, [BroadcastError::class]);
-        $this->executedAt = ValueHydrator::string($data['executed_at'] ?? null, true);
+        $this->executedAt = ValueHydrator::dateTime($data['executed_at'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->idempotencyKey = ValueHydrator::string($data['idempotency_key'] ?? null, true);
         $this->purpose = ValueHydrator::string($data['purpose'] ?? null, true);
         $this->recipients = ValueHydrator::array($data['recipients'] ?? null, false);
-        $this->sendAfter = ValueHydrator::string($data['send_after'] ?? null, false);
+        $this->sendAfter = ValueHydrator::dateTime($data['send_after'] ?? null, false);
         $this->senderId = ValueHydrator::string($data['sender_id'] ?? null, false);
-        $this->canceledAt = ValueHydrator::string($data['canceled_at'] ?? null, true);
+        $this->canceledAt = ValueHydrator::dateTime($data['canceled_at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -490,7 +495,7 @@ final class BroadcastCancelDetail extends DomainValue
 final class BroadcastCreationDetail extends DomainValue
 {
     public readonly string $content;
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     /** @var list<string>|null */
     public readonly ?array $customerIds;
     public readonly ?ChimeEmailMessage $email;
@@ -499,21 +504,21 @@ final class BroadcastCreationDetail extends DomainValue
     public readonly ?string $purpose;
     /** @var list<string> */
     public readonly array $recipients;
-    public readonly string $sendAfter;
+    public readonly DateTimeImmutable $sendAfter;
     public readonly string $senderId;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->content = ValueHydrator::string($data['content'] ?? null, false);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customerIds = ValueHydrator::array($data['customer_ids'] ?? null, true);
         $this->email = ValueHydrator::object($data['email'] ?? null, [ChimeEmailMessage::class], true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->idempotencyKey = ValueHydrator::string($data['idempotency_key'] ?? null, true);
         $this->purpose = ValueHydrator::string($data['purpose'] ?? null, true);
         $this->recipients = ValueHydrator::array($data['recipients'] ?? null, false);
-        $this->sendAfter = ValueHydrator::string($data['send_after'] ?? null, false);
+        $this->sendAfter = ValueHydrator::dateTime($data['send_after'] ?? null, false);
         $this->senderId = ValueHydrator::string($data['sender_id'] ?? null, false);
     }
 
@@ -529,19 +534,19 @@ final class BroadcastDetail extends DomainValue
     /** @var list<string>|null */
     public readonly ?array $chimeIds;
     public readonly string $content;
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     /** @var list<string>|null */
     public readonly ?array $customerIds;
     public readonly ?ChimeEmailMessage $email;
     /** @var list<BroadcastError>|null */
     public readonly ?array $errors;
-    public readonly ?string $executedAt;
+    public readonly ?DateTimeImmutable $executedAt;
     public readonly string $id;
     public readonly ?string $idempotencyKey;
     public readonly ?string $purpose;
     /** @var list<string> */
     public readonly array $recipients;
-    public readonly string $sendAfter;
+    public readonly DateTimeImmutable $sendAfter;
     public readonly string $senderId;
 
     /** @param array<string, mixed> $data */
@@ -549,16 +554,16 @@ final class BroadcastDetail extends DomainValue
     {
         $this->chimeIds = ValueHydrator::array($data['chime_ids'] ?? null, true);
         $this->content = ValueHydrator::string($data['content'] ?? null, false);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customerIds = ValueHydrator::array($data['customer_ids'] ?? null, true);
         $this->email = ValueHydrator::object($data['email'] ?? null, [ChimeEmailMessage::class], true);
         $this->errors = ValueHydrator::objects($data['errors'] ?? null, [BroadcastError::class]);
-        $this->executedAt = ValueHydrator::string($data['executed_at'] ?? null, true);
+        $this->executedAt = ValueHydrator::dateTime($data['executed_at'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->idempotencyKey = ValueHydrator::string($data['idempotency_key'] ?? null, true);
         $this->purpose = ValueHydrator::string($data['purpose'] ?? null, true);
         $this->recipients = ValueHydrator::array($data['recipients'] ?? null, false);
-        $this->sendAfter = ValueHydrator::string($data['send_after'] ?? null, false);
+        $this->sendAfter = ValueHydrator::dateTime($data['send_after'] ?? null, false);
         $this->senderId = ValueHydrator::string($data['sender_id'] ?? null, false);
     }
 
@@ -592,7 +597,7 @@ final class BroadcastError extends DomainValue
 
 final class Chime extends DomainValue
 {
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     /** @var array<string, string>|null */
     public readonly ?array $customData;
     public readonly ?string $customerId;
@@ -608,7 +613,7 @@ final class Chime extends DomainValue
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
         $this->customerId = ValueHydrator::string($data['customer_id'] ?? null, true);
         $this->email = ValueHydrator::object($data['email'] ?? null, [ChimeEmailMessage::class], true);
@@ -634,7 +639,7 @@ final class ChimeEmailEvent extends DomainValue
     public readonly ?string $bounceType;
     public readonly ?string $complaintSubType;
     public readonly string $id;
-    public readonly string $occurredAt;
+    public readonly DateTimeImmutable $occurredAt;
     public readonly string $provider;
     public readonly string $providerMessageId;
     public readonly ?string $reason;
@@ -652,7 +657,7 @@ final class ChimeEmailEvent extends DomainValue
         $this->bounceType = ValueHydrator::string($data['bounce_type'] ?? null, true);
         $this->complaintSubType = ValueHydrator::string($data['complaint_sub_type'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
-        $this->occurredAt = ValueHydrator::string($data['occurred_at'] ?? null, false);
+        $this->occurredAt = ValueHydrator::dateTime($data['occurred_at'] ?? null, false);
         $this->provider = ValueHydrator::string($data['provider'] ?? null, false);
         $this->providerMessageId = ValueHydrator::string($data['provider_message_id'] ?? null, false);
         $this->reason = ValueHydrator::string($data['reason'] ?? null, true);
@@ -882,49 +887,49 @@ final class ChimeRecipientPhone extends DomainValue
 final class ChimeTransmission extends DomainValue
 {
     public readonly string $address;
-    public readonly string $createdAt;
-    public readonly ?string $deliveredAt;
+    public readonly DateTimeImmutable $createdAt;
+    public readonly ?DateTimeImmutable $deliveredAt;
     /** @var list<ChimeEmailEvent>|null */
     public readonly ?array $emailEvents;
     public readonly ?string $emailFailureCode;
     public readonly ?string $emailFailureReason;
     public readonly ?string $emailStatus;
     public readonly ?string $error;
-    public readonly ?string $failedAt;
+    public readonly ?DateTimeImmutable $failedAt;
     public readonly string $gateway;
     public readonly ?string $gatewayMessageId;
     public readonly string $id;
-    public readonly string $initializedAt;
-    public readonly ?string $lastEmailEventAt;
+    public readonly DateTimeImmutable $initializedAt;
+    public readonly ?DateTimeImmutable $lastEmailEventAt;
     public readonly string $mechanism;
-    public readonly ?string $sentAt;
+    public readonly ?DateTimeImmutable $sentAt;
     public readonly ?string $sentVia;
     public readonly string $status;
-    public readonly ?string $suppressedAt;
+    public readonly ?DateTimeImmutable $suppressedAt;
     public readonly ?string $suppressionReason;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->address = ValueHydrator::string($data['address'] ?? null, false);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
-        $this->deliveredAt = ValueHydrator::string($data['delivered_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
+        $this->deliveredAt = ValueHydrator::dateTime($data['delivered_at'] ?? null, true);
         $this->emailEvents = ValueHydrator::objects($data['email_events'] ?? null, [ChimeEmailEvent::class]);
         $this->emailFailureCode = ValueHydrator::string($data['email_failure_code'] ?? null, true);
         $this->emailFailureReason = ValueHydrator::string($data['email_failure_reason'] ?? null, true);
         $this->emailStatus = ValueHydrator::string($data['email_status'] ?? null, true);
         $this->error = ValueHydrator::string($data['error'] ?? null, true);
-        $this->failedAt = ValueHydrator::string($data['failed_at'] ?? null, true);
+        $this->failedAt = ValueHydrator::dateTime($data['failed_at'] ?? null, true);
         $this->gateway = ValueHydrator::string($data['gateway'] ?? null, false);
         $this->gatewayMessageId = ValueHydrator::string($data['gateway_message_id'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
-        $this->initializedAt = ValueHydrator::string($data['initialized_at'] ?? null, false);
-        $this->lastEmailEventAt = ValueHydrator::string($data['last_email_event_at'] ?? null, true);
+        $this->initializedAt = ValueHydrator::dateTime($data['initialized_at'] ?? null, false);
+        $this->lastEmailEventAt = ValueHydrator::dateTime($data['last_email_event_at'] ?? null, true);
         $this->mechanism = ValueHydrator::string($data['mechanism'] ?? null, false);
-        $this->sentAt = ValueHydrator::string($data['sent_at'] ?? null, true);
+        $this->sentAt = ValueHydrator::dateTime($data['sent_at'] ?? null, true);
         $this->sentVia = ValueHydrator::string($data['sent_via'] ?? null, true);
         $this->status = ValueHydrator::string($data['status'] ?? null, false);
-        $this->suppressedAt = ValueHydrator::string($data['suppressed_at'] ?? null, true);
+        $this->suppressedAt = ValueHydrator::dateTime($data['suppressed_at'] ?? null, true);
         $this->suppressionReason = ValueHydrator::string($data['suppression_reason'] ?? null, true);
     }
 
@@ -1049,7 +1054,7 @@ final class CountrySpecification extends DomainValue
 final class CurrencyBalanceSnapshot extends DomainValue
 {
     public readonly BalanceValue $available;
-    public readonly string $includesTransactionsBefore;
+    public readonly DateTimeImmutable $includesTransactionsBefore;
     public readonly BalanceValue $pending;
     public readonly CurrencyBalanceSnapshotRefund $refund;
     public readonly CurrencyBalanceSnapshotReserved $reserved;
@@ -1058,7 +1063,7 @@ final class CurrencyBalanceSnapshot extends DomainValue
     public function __construct(array $data)
     {
         $this->available = ValueHydrator::object($data['available'] ?? null, [BalanceValue::class], false);
-        $this->includesTransactionsBefore = ValueHydrator::string($data['includes_transactions_before'] ?? null, false);
+        $this->includesTransactionsBefore = ValueHydrator::dateTime($data['includes_transactions_before'] ?? null, false);
         $this->pending = ValueHydrator::object($data['pending'] ?? null, [BalanceValue::class], false);
         $this->refund = ValueHydrator::object($data['refund'] ?? null, [CurrencyBalanceSnapshotRefund::class], false);
         $this->reserved = ValueHydrator::object($data['reserved'] ?? null, [CurrencyBalanceSnapshotReserved::class], false);
@@ -1110,7 +1115,7 @@ final class Customer extends DomainValue
     /** @var array<string, CustomerBalanceValue> */
     public readonly array $balance;
     public readonly ?CustomerAddress $billingAddress;
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     /** @var array<string, string>|null */
     public readonly ?array $customData;
     public readonly ?string $emailAddress;
@@ -1122,14 +1127,14 @@ final class Customer extends DomainValue
     public readonly ?CustomerAddress $shippingAddress;
     public readonly ?string $suffix;
     public readonly ?string $title;
-    public readonly ?string $updatedAt;
+    public readonly ?DateTimeImmutable $updatedAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->balance = ValueHydrator::objectMap($data['balance'] ?? null, [CustomerBalanceValue::class]);
         $this->billingAddress = ValueHydrator::object($data['billing_address'] ?? null, [CustomerAddress::class], true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
         $this->emailAddress = ValueHydrator::string($data['email_address'] ?? null, true);
         $this->guest = ValueHydrator::bool($data['guest'] ?? null, false);
@@ -1140,7 +1145,7 @@ final class Customer extends DomainValue
         $this->shippingAddress = ValueHydrator::object($data['shipping_address'] ?? null, [CustomerAddress::class], true);
         $this->suffix = ValueHydrator::string($data['suffix'] ?? null, true);
         $this->title = ValueHydrator::string($data['title'] ?? null, true);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, true);
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -1183,13 +1188,13 @@ final class CustomerAddress extends DomainValue
 
 final class CustomerBalanceValue extends DomainValue
 {
-    public readonly string $asOf;
+    public readonly DateTimeImmutable $asOf;
     public readonly Amount $available;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->asOf = ValueHydrator::string($data['as_of'] ?? null, false);
+        $this->asOf = ValueHydrator::dateTime($data['as_of'] ?? null, false);
         $this->available = ValueHydrator::object($data['available'] ?? null, [Amount::class], false);
     }
 
@@ -1272,10 +1277,10 @@ final class File extends DomainValue
     public readonly ?array $customData;
     /** @var array<string, string>|null */
     public readonly ?array $metadata;
-    public readonly string $createdAt;
-    public readonly string $updatedAt;
-    public readonly ?string $availableAt;
-    public readonly ?string $expiresAt;
+    public readonly DateTimeImmutable $createdAt;
+    public readonly DateTimeImmutable $updatedAt;
+    public readonly ?DateTimeImmutable $availableAt;
+    public readonly ?DateTimeImmutable $expiresAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -1297,10 +1302,10 @@ final class File extends DomainValue
         $this->latestError = ValueHydrator::object($data['latest_error'] ?? null, [FileLatestError::class], true);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
         $this->metadata = ValueHydrator::array($data['metadata'] ?? null, true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, false);
-        $this->availableAt = ValueHydrator::string($data['available_at'] ?? null, true);
-        $this->expiresAt = ValueHydrator::string($data['expires_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, false);
+        $this->availableAt = ValueHydrator::dateTime($data['available_at'] ?? null, true);
+        $this->expiresAt = ValueHydrator::dateTime($data['expires_at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -1359,7 +1364,7 @@ final class FileLatestError extends DomainValue
     public readonly ?string $code;
     public readonly ?string $message;
     public readonly ?bool $retryable;
-    public readonly ?string $at;
+    public readonly ?DateTimeImmutable $at;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -1367,7 +1372,7 @@ final class FileLatestError extends DomainValue
         $this->code = ValueHydrator::string($data['code'] ?? null, true);
         $this->message = ValueHydrator::string($data['message'] ?? null, true);
         $this->retryable = ValueHydrator::bool($data['retryable'] ?? null, true);
-        $this->at = ValueHydrator::string($data['at'] ?? null, true);
+        $this->at = ValueHydrator::dateTime($data['at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -1393,10 +1398,10 @@ final class FileLink extends DomainValue
     public readonly ?array $customData;
     /** @var array<string, string>|null */
     public readonly ?array $metadata;
-    public readonly string $createdAt;
-    public readonly string $updatedAt;
-    public readonly string $expiresAt;
-    public readonly ?string $revokedAt;
+    public readonly DateTimeImmutable $createdAt;
+    public readonly DateTimeImmutable $updatedAt;
+    public readonly DateTimeImmutable $expiresAt;
+    public readonly ?DateTimeImmutable $revokedAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -1413,10 +1418,10 @@ final class FileLink extends DomainValue
         $this->revokedBy = ValueHydrator::object($data['revoked_by'] ?? null, [FileLinkActor::class], true);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
         $this->metadata = ValueHydrator::array($data['metadata'] ?? null, true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, false);
-        $this->expiresAt = ValueHydrator::string($data['expires_at'] ?? null, false);
-        $this->revokedAt = ValueHydrator::string($data['revoked_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, false);
+        $this->expiresAt = ValueHydrator::dateTime($data['expires_at'] ?? null, false);
+        $this->revokedAt = ValueHydrator::dateTime($data['revoked_at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -1430,7 +1435,7 @@ final class FileLinkAccess extends DomainValue
 {
     public readonly ?int $maxAccesses;
     public readonly ?int $accessCount;
-    public readonly ?string $lastAccessedAt;
+    public readonly ?DateTimeImmutable $lastAccessedAt;
     public readonly ?bool $allowDownload;
     /** @var list<string>|null */
     public readonly ?array $allowedOrigins;
@@ -1440,7 +1445,7 @@ final class FileLinkAccess extends DomainValue
     {
         $this->maxAccesses = ValueHydrator::int($data['max_accesses'] ?? null, true);
         $this->accessCount = ValueHydrator::int($data['access_count'] ?? null, true);
-        $this->lastAccessedAt = ValueHydrator::string($data['last_accessed_at'] ?? null, true);
+        $this->lastAccessedAt = ValueHydrator::dateTime($data['last_accessed_at'] ?? null, true);
         $this->allowDownload = ValueHydrator::bool($data['allow_download'] ?? null, true);
         $this->allowedOrigins = ValueHydrator::array($data['allowed_origins'] ?? null, true);
     }
@@ -1681,7 +1686,7 @@ final class FileSource extends DomainValue
 final class FileUploadReceipt extends DomainValue
 {
     public readonly string $contentType;
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     public readonly ?string $filename;
     public readonly string $id;
     public readonly ?string $name;
@@ -1692,7 +1697,7 @@ final class FileUploadReceipt extends DomainValue
     public function __construct(array $data)
     {
         $this->contentType = ValueHydrator::string($data['content_type'] ?? null, false);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->filename = ValueHydrator::string($data['filename'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->name = ValueHydrator::string($data['name'] ?? null, true);
@@ -1709,8 +1714,8 @@ final class FileUploadReceipt extends DomainValue
 
 final class FinancialAccount extends DomainValue
 {
-    public readonly ?string $archivedAt;
-    public readonly string $createdAt;
+    public readonly ?DateTimeImmutable $archivedAt;
+    public readonly DateTimeImmutable $createdAt;
     public readonly string $currency;
     /** @var array<string, string>|null */
     public readonly ?array $customData;
@@ -1726,7 +1731,7 @@ final class FinancialAccount extends DomainValue
     /** @var array<string, mixed>|null */
     public readonly ?array $verification;
     public readonly ?FinancialAccountBank $bankAccount;
-    public readonly ?string $disconnectedAt;
+    public readonly ?DateTimeImmutable $disconnectedAt;
     /** @var array<string, mixed>|null */
     public readonly ?array $doshAccount;
     public readonly ?FinancialAccountOwner $owner;
@@ -1735,8 +1740,8 @@ final class FinancialAccount extends DomainValue
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->archivedAt = ValueHydrator::string($data['archived_at'] ?? null, true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->archivedAt = ValueHydrator::dateTime($data['archived_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->currency = ValueHydrator::string($data['currency'] ?? null, false);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
         $this->description = ValueHydrator::string($data['description'] ?? null, true);
@@ -1750,7 +1755,7 @@ final class FinancialAccount extends DomainValue
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
         $this->verification = ValueHydrator::array($data['verification'] ?? null, true);
         $this->bankAccount = ValueHydrator::object($data['bank_account'] ?? null, [FinancialAccountBank::class], true);
-        $this->disconnectedAt = ValueHydrator::string($data['disconnected_at'] ?? null, true);
+        $this->disconnectedAt = ValueHydrator::dateTime($data['disconnected_at'] ?? null, true);
         $this->doshAccount = ValueHydrator::array($data['dosh_account'] ?? null, true);
         $this->owner = ValueHydrator::object($data['owner'] ?? null, [FinancialAccountOwner::class], true);
         $this->wallet = ValueHydrator::object($data['wallet'] ?? null, [FinancialAccountWallet::class], true);
@@ -1856,13 +1861,13 @@ final class FinancialAccountPage extends DomainValue
 
 final class FinancialAccountPullConfiguration extends DomainValue
 {
-    public readonly string $enabledAt;
+    public readonly DateTimeImmutable $enabledAt;
     public readonly FinancialAccountPullConfigurationMandate $mandate;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->enabledAt = ValueHydrator::string($data['enabled_at'] ?? null, false);
+        $this->enabledAt = ValueHydrator::dateTime($data['enabled_at'] ?? null, false);
         $this->mandate = ValueHydrator::object($data['mandate'] ?? null, [FinancialAccountPullConfigurationMandate::class], false);
     }
 
@@ -1875,7 +1880,7 @@ final class FinancialAccountPullConfiguration extends DomainValue
 
 final class FinancialAccountPullConfigurationMandate extends DomainValue
 {
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     public readonly string $id;
     public readonly string $ipAddress;
     public readonly string $userAgent;
@@ -1883,7 +1888,7 @@ final class FinancialAccountPullConfigurationMandate extends DomainValue
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->ipAddress = ValueHydrator::string($data['ip_address'] ?? null, false);
         $this->userAgent = ValueHydrator::string($data['user_agent'] ?? null, false);
@@ -1898,12 +1903,12 @@ final class FinancialAccountPullConfigurationMandate extends DomainValue
 
 final class FinancialAccountPushConfiguration extends DomainValue
 {
-    public readonly string $enabledAt;
+    public readonly DateTimeImmutable $enabledAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->enabledAt = ValueHydrator::string($data['enabled_at'] ?? null, false);
+        $this->enabledAt = ValueHydrator::dateTime($data['enabled_at'] ?? null, false);
     }
 
     /** @param array<string, mixed> $data */
@@ -2048,7 +2053,7 @@ final class GeneratedSecretKey extends DomainValue
     public readonly string $id;
     public readonly ?string $label;
     public readonly string $tokenType;
-    public readonly string $issuedAt;
+    public readonly DateTimeImmutable $issuedAt;
     public readonly string $token;
 
     /** @param array<string, mixed> $data */
@@ -2057,7 +2062,7 @@ final class GeneratedSecretKey extends DomainValue
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->label = ValueHydrator::string($data['label'] ?? null, true);
         $this->tokenType = ValueHydrator::string($data['token_type'] ?? null, false);
-        $this->issuedAt = ValueHydrator::string($data['issued_at'] ?? null, false);
+        $this->issuedAt = ValueHydrator::dateTime($data['issued_at'] ?? null, false);
         $this->token = ValueHydrator::string($data['token'] ?? null, false);
     }
 
@@ -2137,10 +2142,10 @@ final class MessageTemplate extends DomainValue
     public readonly ?MessageTemplateSMSContent $sms;
     public readonly ?MessageTemplateEmailContent $email;
     public readonly ?GenericValue $attachments;
-    public readonly string $createdAt;
-    public readonly string $updatedAt;
-    public readonly ?string $publishedAt;
-    public readonly ?string $archivedAt;
+    public readonly DateTimeImmutable $createdAt;
+    public readonly DateTimeImmutable $updatedAt;
+    public readonly ?DateTimeImmutable $publishedAt;
+    public readonly ?DateTimeImmutable $archivedAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -2160,10 +2165,10 @@ final class MessageTemplate extends DomainValue
         $this->sms = ValueHydrator::object($data['sms'] ?? null, [MessageTemplateSMSContent::class], true);
         $this->email = ValueHydrator::object($data['email'] ?? null, [MessageTemplateEmailContent::class], true);
         $this->attachments = ValueHydrator::object($data['attachments'] ?? null, [GenericValue::class], true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, false);
-        $this->publishedAt = ValueHydrator::string($data['published_at'] ?? null, true);
-        $this->archivedAt = ValueHydrator::string($data['archived_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, false);
+        $this->publishedAt = ValueHydrator::dateTime($data['published_at'] ?? null, true);
+        $this->archivedAt = ValueHydrator::dateTime($data['archived_at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -2390,11 +2395,11 @@ final class MessageTemplatesPage extends DomainValue
 final class OTPTransaction extends DomainValue
 {
     public readonly ?string $cancelReason;
-    public readonly ?string $canceledAt;
-    public readonly string $expiresAt;
+    public readonly ?DateTimeImmutable $canceledAt;
+    public readonly DateTimeImmutable $expiresAt;
     public readonly string $fullMessage;
     public readonly string $id;
-    public readonly string $initiatedAt;
+    public readonly DateTimeImmutable $initiatedAt;
     public readonly string $status;
     public readonly ?OTPTransmission $transmission;
 
@@ -2402,11 +2407,11 @@ final class OTPTransaction extends DomainValue
     public function __construct(array $data)
     {
         $this->cancelReason = ValueHydrator::string($data['cancel_reason'] ?? null, true);
-        $this->canceledAt = ValueHydrator::string($data['canceled_at'] ?? null, true);
-        $this->expiresAt = ValueHydrator::string($data['expires_at'] ?? null, false);
+        $this->canceledAt = ValueHydrator::dateTime($data['canceled_at'] ?? null, true);
+        $this->expiresAt = ValueHydrator::dateTime($data['expires_at'] ?? null, false);
         $this->fullMessage = ValueHydrator::string($data['full_message'] ?? null, false);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
-        $this->initiatedAt = ValueHydrator::string($data['initiated_at'] ?? null, false);
+        $this->initiatedAt = ValueHydrator::dateTime($data['initiated_at'] ?? null, false);
         $this->status = ValueHydrator::string($data['status'] ?? null, false);
         $this->transmission = ValueHydrator::object($data['transmission'] ?? null, [OTPTransmission::class], true);
     }
@@ -2422,7 +2427,7 @@ final class OTPTransmission extends DomainValue
 {
     public readonly string $recipient;
     public readonly string $senderId;
-    public readonly ?string $sentAt;
+    public readonly ?DateTimeImmutable $sentAt;
     public readonly ?string $sentVia;
     public readonly ?string $status;
 
@@ -2431,7 +2436,7 @@ final class OTPTransmission extends DomainValue
     {
         $this->recipient = ValueHydrator::string($data['recipient'] ?? null, false);
         $this->senderId = ValueHydrator::string($data['sender_id'] ?? null, false);
-        $this->sentAt = ValueHydrator::string($data['sent_at'] ?? null, true);
+        $this->sentAt = ValueHydrator::dateTime($data['sent_at'] ?? null, true);
         $this->sentVia = ValueHydrator::string($data['sent_via'] ?? null, true);
         $this->status = ValueHydrator::string($data['status'] ?? null, true);
     }
@@ -2464,7 +2469,7 @@ final class OTPVerification extends DomainValue
 
 final class OTPVerificationAttempt extends DomainValue
 {
-    public readonly string $attemptedAt;
+    public readonly DateTimeImmutable $attemptedAt;
     public readonly string $id;
     public readonly string $presentedToken;
     public readonly string $recipient;
@@ -2473,7 +2478,7 @@ final class OTPVerificationAttempt extends DomainValue
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->attemptedAt = ValueHydrator::string($data['attempted_at'] ?? null, false);
+        $this->attemptedAt = ValueHydrator::dateTime($data['attempted_at'] ?? null, false);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->presentedToken = ValueHydrator::string($data['presented_token'] ?? null, false);
         $this->recipient = ValueHydrator::string($data['recipient'] ?? null, false);
@@ -2508,16 +2513,16 @@ final class OTPVerificationAttemptResult extends DomainValue
 
 final class Order extends DomainValue
 {
-    public readonly ?string $canceledAt;
+    public readonly ?DateTimeImmutable $canceledAt;
     public readonly ?OrderCheckoutSettings $checkoutSettings;
-    public readonly ?string $completedAt;
+    public readonly ?DateTimeImmutable $completedAt;
     public readonly ?OrderCreatedFrom $createdFrom;
     /** @var array<string, string>|null */
     public readonly ?array $customData;
     public readonly OrderCustomer $customer;
-    public readonly ?string $expiresAt;
+    public readonly ?DateTimeImmutable $expiresAt;
     public readonly string $id;
-    public readonly string $initiatedAt;
+    public readonly DateTimeImmutable $initiatedAt;
     public readonly ?OrderInvoice $invoice;
     public readonly ?string $number;
     public readonly ?string $receiptNumber;
@@ -2525,43 +2530,37 @@ final class Order extends DomainValue
     public readonly ?array $refunds;
     public readonly ?InvoiceSettings $invoiceSettings;
     public readonly string $status;
-    public readonly ?string $sealedAt;
+    public readonly ?DateTimeImmutable $sealedAt;
     public readonly ?OrderLineItemGroup $lineItemGroup;
     public readonly ?Payment $payment;
-    public readonly ?string $paidAt;
-    public readonly ?string $paymentDueAt;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $payoutSettings;
+    public readonly ?DateTimeImmutable $paidAt;
+    public readonly ?DateTimeImmutable $paymentDueAt;
     public readonly ?string $reference;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $shipping;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->canceledAt = ValueHydrator::string($data['canceled_at'] ?? null, true);
+        $this->canceledAt = ValueHydrator::dateTime($data['canceled_at'] ?? null, true);
         $this->checkoutSettings = ValueHydrator::object($data['checkout_settings'] ?? null, [OrderCheckoutSettings::class], true);
-        $this->completedAt = ValueHydrator::string($data['completed_at'] ?? null, true);
+        $this->completedAt = ValueHydrator::dateTime($data['completed_at'] ?? null, true);
         $this->createdFrom = ValueHydrator::object($data['created_from'] ?? null, [OrderCreatedFrom::class], true);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
         $this->customer = ValueHydrator::object($data['customer'] ?? null, [OrderCustomer::class], false);
-        $this->expiresAt = ValueHydrator::string($data['expires_at'] ?? null, true);
+        $this->expiresAt = ValueHydrator::dateTime($data['expires_at'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
-        $this->initiatedAt = ValueHydrator::string($data['initiated_at'] ?? null, false);
+        $this->initiatedAt = ValueHydrator::dateTime($data['initiated_at'] ?? null, false);
         $this->invoice = ValueHydrator::object($data['invoice'] ?? null, [OrderInvoice::class], true);
         $this->number = ValueHydrator::string($data['number'] ?? null, true);
         $this->receiptNumber = ValueHydrator::string($data['receipt_number'] ?? null, true);
         $this->refunds = ValueHydrator::objects($data['refunds'] ?? null, [Refund::class]);
         $this->invoiceSettings = ValueHydrator::object($data['invoice_settings'] ?? null, [InvoiceSettings::class], true);
         $this->status = ValueHydrator::string($data['status'] ?? null, false);
-        $this->sealedAt = ValueHydrator::string($data['sealed_at'] ?? null, true);
+        $this->sealedAt = ValueHydrator::dateTime($data['sealed_at'] ?? null, true);
         $this->lineItemGroup = ValueHydrator::object($data['line_item_group'] ?? null, [OrderLineItemGroup::class], true);
         $this->payment = ValueHydrator::object($data['payment'] ?? null, [Payment::class], true);
-        $this->paidAt = ValueHydrator::string($data['paid_at'] ?? null, true);
-        $this->paymentDueAt = ValueHydrator::string($data['payment_due_at'] ?? null, true);
-        $this->payoutSettings = ValueHydrator::array($data['payout_settings'] ?? null, true);
+        $this->paidAt = ValueHydrator::dateTime($data['paid_at'] ?? null, true);
+        $this->paymentDueAt = ValueHydrator::dateTime($data['payment_due_at'] ?? null, true);
         $this->reference = ValueHydrator::string($data['reference'] ?? null, true);
-        $this->shipping = ValueHydrator::array($data['shipping'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -2778,6 +2777,28 @@ final class OrderDocumentFormat extends DomainValue
     }
 }
 
+final class OrderDiscountLineItem extends DomainValue
+{
+    public readonly string $type;
+    public readonly OrderDiscountLineItemDiscount $discount;
+
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data)
+    {
+        $this->type = ValueHydrator::string($data['type'] ?? null, false);
+        $this->discount = ValueHydrator::object($data['discount'] ?? null, [OrderDiscountLineItemDiscount::class], false);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function fromArray(array $data): static { return new static($data); }
+}
+
+final class OrderDiscountLineItemDiscount extends DomainValue
+{
+    public function __construct(array $data) {}
+    public static function fromArray(array $data): static { return new static($data); }
+}
+
 final class OrderFeeLineItem extends DomainValue
 {
     public readonly string $type;
@@ -2825,13 +2846,13 @@ final class OrderFeeLineItemFee extends DomainValue
 final class OrderInvoice extends DomainValue
 {
     public readonly ?string $number;
-    public readonly ?OrderInvoiceFormat $format;
+    public readonly OrderInvoiceFormat $format;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->number = ValueHydrator::string($data['number'] ?? null, true);
-        $this->format = ValueHydrator::object($data['format'] ?? null, [OrderInvoiceFormat::class], true);
+        $this->format = ValueHydrator::object($data['format'] ?? null, [OrderInvoiceFormat::class], false);
     }
 
     /** @param array<string, mixed> $data */
@@ -2864,14 +2885,14 @@ final class OrderInvoiceFormat extends DomainValue
 
 final class OrderLineItemGroup extends DomainValue
 {
-    /** @var list<OrderProductLineItem|OrderFeeLineItem|OrderShippingLineItem> */
+    /** @var list<OrderProductLineItem|OrderFeeLineItem|OrderShippingLineItem|OrderDiscountLineItem> */
     public readonly array $lineItems;
     public readonly Amount $total;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->lineItems = ValueHydrator::objects($data['line_items'] ?? null, [OrderProductLineItem::class, OrderFeeLineItem::class, OrderShippingLineItem::class]);
+        $this->lineItems = ValueHydrator::objects($data['line_items'] ?? null, [OrderProductLineItem::class, OrderFeeLineItem::class, OrderShippingLineItem::class, OrderDiscountLineItem::class]);
         $this->total = ValueHydrator::object($data['total'] ?? null, [Amount::class], false);
     }
 
@@ -2884,16 +2905,16 @@ final class OrderLineItemGroup extends DomainValue
 
 final class OrderPage extends DomainValue
 {
-    public readonly ?int $number;
-    public readonly ?int $size;
-    /** @var list<Order>|null */
-    public readonly ?array $orders;
+    public readonly int $number;
+    public readonly int $size;
+    /** @var list<Order> */
+    public readonly array $orders;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->number = ValueHydrator::int($data['number'] ?? null, true);
-        $this->size = ValueHydrator::int($data['size'] ?? null, true);
+        $this->number = ValueHydrator::int($data['number'] ?? null, false);
+        $this->size = ValueHydrator::int($data['size'] ?? null, false);
         $this->orders = ValueHydrator::objects($data['orders'] ?? null, [Order::class]);
     }
 
@@ -2912,15 +2933,18 @@ final class Payment extends DomainValue
     public readonly Amount $amount;
     public readonly ?BalanceTransaction $balanceTransaction;
     public readonly ?PaymentMethodSnapshot $paymentMethod;
+    public readonly ?PaymentBillingDetails $billingDetails;
+    public readonly ?OrderCustomer $customer;
     public readonly ?PaymentAttempt $latestAttempt;
     public readonly ?PaymentNextAction $nextAction;
-    public readonly string $initiatedAt;
-    public readonly ?string $executedAt;
-    public readonly ?string $paidAt;
-    public readonly ?string $canceledAt;
-    public readonly ?string $dueAt;
-    public readonly ?string $expiredAt;
-    public readonly ?string $failedAt;
+    public readonly ?PaymentError $latestError;
+    public readonly DateTimeImmutable $initiatedAt;
+    public readonly ?DateTimeImmutable $executedAt;
+    public readonly ?DateTimeImmutable $paidAt;
+    public readonly ?DateTimeImmutable $canceledAt;
+    public readonly ?DateTimeImmutable $dueAt;
+    public readonly ?DateTimeImmutable $expiredAt;
+    public readonly ?DateTimeImmutable $failedAt;
     public readonly ?bool $paidOffline;
     /** @var list<string>|null */
     public readonly ?array $paymentMethodTypes;
@@ -2935,15 +2959,18 @@ final class Payment extends DomainValue
         $this->amount = ValueHydrator::object($data['amount'] ?? null, [Amount::class], false);
         $this->balanceTransaction = ValueHydrator::object($data['balance_transaction'] ?? null, [BalanceTransaction::class], true);
         $this->paymentMethod = ValueHydrator::object($data['payment_method'] ?? null, [PaymentMethodSnapshot::class], true);
+        $this->billingDetails = ValueHydrator::object($data['billing_details'] ?? null, [PaymentBillingDetails::class], true);
+        $this->customer = ValueHydrator::object($data['customer'] ?? null, [OrderCustomer::class], true);
         $this->latestAttempt = ValueHydrator::object($data['latest_attempt'] ?? null, [PaymentAttempt::class], true);
         $this->nextAction = ValueHydrator::object($data['next_action'] ?? null, [PaymentNextAction::class], true);
-        $this->initiatedAt = ValueHydrator::string($data['initiated_at'] ?? null, false);
-        $this->executedAt = ValueHydrator::string($data['executed_at'] ?? null, true);
-        $this->paidAt = ValueHydrator::string($data['paid_at'] ?? null, true);
-        $this->canceledAt = ValueHydrator::string($data['canceled_at'] ?? null, true);
-        $this->dueAt = ValueHydrator::string($data['due_at'] ?? null, true);
-        $this->expiredAt = ValueHydrator::string($data['expired_at'] ?? null, true);
-        $this->failedAt = ValueHydrator::string($data['failed_at'] ?? null, true);
+        $this->latestError = ValueHydrator::object($data['latest_error'] ?? null, [PaymentError::class], true);
+        $this->initiatedAt = ValueHydrator::dateTime($data['initiated_at'] ?? null, false);
+        $this->executedAt = ValueHydrator::dateTime($data['executed_at'] ?? null, true);
+        $this->paidAt = ValueHydrator::dateTime($data['paid_at'] ?? null, true);
+        $this->canceledAt = ValueHydrator::dateTime($data['canceled_at'] ?? null, true);
+        $this->dueAt = ValueHydrator::dateTime($data['due_at'] ?? null, true);
+        $this->expiredAt = ValueHydrator::dateTime($data['expired_at'] ?? null, true);
+        $this->failedAt = ValueHydrator::dateTime($data['failed_at'] ?? null, true);
         $this->paidOffline = ValueHydrator::bool($data['paid_offline'] ?? null, true);
         $this->paymentMethodTypes = ValueHydrator::array($data['payment_method_types'] ?? null, true);
         $this->payoutConfiguration = ValueHydrator::object($data['payout_configuration'] ?? null, [PaymentPayoutConfiguration::class], true);
@@ -2960,20 +2987,81 @@ final class PaymentAttempt extends DomainValue
 {
     public readonly ?string $paymentMethodType;
     public readonly ?string $paymentMethodId;
+    public readonly ?PaymentAttemptError $error;
     public readonly ?string $reference;
-    public readonly ?string $status;
-    public readonly ?string $initiatedAt;
-    public readonly ?string $succeededAt;
+    public readonly string $status;
+    public readonly DateTimeImmutable $initiatedAt;
+    public readonly ?DateTimeImmutable $succeededAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->paymentMethodType = ValueHydrator::string($data['payment_method_type'] ?? null, true);
         $this->paymentMethodId = ValueHydrator::string($data['payment_method_id'] ?? null, true);
+        $this->error = ValueHydrator::object($data['error'] ?? null, [PaymentAttemptError::class], true);
         $this->reference = ValueHydrator::string($data['reference'] ?? null, true);
-        $this->status = ValueHydrator::string($data['status'] ?? null, true);
-        $this->initiatedAt = ValueHydrator::string($data['initiated_at'] ?? null, true);
-        $this->succeededAt = ValueHydrator::string($data['succeeded_at'] ?? null, true);
+        $this->status = ValueHydrator::string($data['status'] ?? null, false);
+        $this->initiatedAt = ValueHydrator::dateTime($data['initiated_at'] ?? null, false);
+        $this->succeededAt = ValueHydrator::dateTime($data['succeeded_at'] ?? null, true);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function fromArray(array $data): static
+    {
+        return new static($data);
+    }
+}
+
+final class PaymentAttemptError extends DomainValue
+{
+    public readonly string $message;
+
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data)
+    {
+        $this->message = ValueHydrator::string($data['message'] ?? null, false);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function fromArray(array $data): static
+    {
+        return new static($data);
+    }
+}
+
+final class PaymentBillingDetails extends DomainValue
+{
+    public readonly ?PaymentMethodSnapshotOwner $owner;
+
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data)
+    {
+        $this->owner = ValueHydrator::object($data['owner'] ?? null, [PaymentMethodSnapshotOwner::class], true);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function fromArray(array $data): static
+    {
+        return new static($data);
+    }
+}
+
+final class PaymentError extends DomainValue
+{
+    public readonly string $message;
+    public readonly string $docsUrl;
+    public readonly string $source;
+    public readonly string $type;
+    public readonly string $code;
+
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data)
+    {
+        $this->message = ValueHydrator::string($data['message'] ?? null, false);
+        $this->docsUrl = ValueHydrator::string($data['docs_url'] ?? null, false);
+        $this->source = ValueHydrator::string($data['source'] ?? null, false);
+        $this->type = ValueHydrator::string($data['type'] ?? null, false);
+        $this->code = ValueHydrator::string($data['code'] ?? null, false);
     }
 
     /** @param array<string, mixed> $data */
@@ -2987,29 +3075,28 @@ final class PaymentMethodSnapshot extends DomainValue
 {
     public readonly string $id;
     public readonly ?PaymentMethodSnapshotBankAccount $bankAccount;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $card;
-    public readonly string $createdAt;
+    public readonly ?PaymentMethodCard $card;
+    public readonly DateTimeImmutable $createdAt;
     public readonly string $customerId;
     public readonly ?PaymentMethodSnapshotMobileMoney $mobileMoney;
     public readonly ?PaymentMethodSnapshotOwner $owner;
     public readonly string $type;
     public readonly bool $verified;
-    public readonly ?string $verifiedAt;
+    public readonly ?DateTimeImmutable $verifiedAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->bankAccount = ValueHydrator::object($data['bank_account'] ?? null, [PaymentMethodSnapshotBankAccount::class], true);
-        $this->card = ValueHydrator::array($data['card'] ?? null, true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->card = ValueHydrator::object($data['card'] ?? null, [PaymentMethodCard::class], true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customerId = ValueHydrator::string($data['customer_id'] ?? null, false);
         $this->mobileMoney = ValueHydrator::object($data['mobile_money'] ?? null, [PaymentMethodSnapshotMobileMoney::class], true);
         $this->owner = ValueHydrator::object($data['owner'] ?? null, [PaymentMethodSnapshotOwner::class], true);
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
         $this->verified = ValueHydrator::bool($data['verified'] ?? null, false);
-        $this->verifiedAt = ValueHydrator::string($data['verified_at'] ?? null, true);
+        $this->verifiedAt = ValueHydrator::dateTime($data['verified_at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -3105,14 +3192,14 @@ final class PaymentMethodSnapshotOwner extends DomainValue
 
 final class PaymentPayoutConfiguration extends DomainValue
 {
-    public readonly ?bool $enableFx;
-    public readonly ?PaymentPayoutConfigurationDestination $destination;
+    public readonly bool $enableFx;
+    public readonly PaymentPayoutConfigurationDestination $destination;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->enableFx = ValueHydrator::bool($data['enable_fx'] ?? null, true);
-        $this->destination = ValueHydrator::object($data['destination'] ?? null, [PaymentPayoutConfigurationDestination::class], true);
+        $this->enableFx = ValueHydrator::bool($data['enable_fx'] ?? null, false);
+        $this->destination = ValueHydrator::object($data['destination'] ?? null, [PaymentPayoutConfigurationDestination::class], false);
     }
 
     /** @param array<string, mixed> $data */
@@ -3124,12 +3211,12 @@ final class PaymentPayoutConfiguration extends DomainValue
 
 final class PaymentPayoutConfigurationDestination extends DomainValue
 {
-    public readonly ?string $financialAccountId;
+    public readonly string $financialAccountId;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->financialAccountId = ValueHydrator::string($data['financial_account_id'] ?? null, true);
+        $this->financialAccountId = ValueHydrator::string($data['financial_account_id'] ?? null, false);
     }
 
     /** @param array<string, mixed> $data */
@@ -3243,41 +3330,55 @@ final class OrderShippingLineItemShipping extends DomainValue
 final class PaymentMethod extends DomainValue
 {
     public readonly bool $active;
-    public readonly ?string $archivedAt;
+    public readonly ?DateTimeImmutable $archivedAt;
     public readonly ?PaymentMethodBankAccount $bankAccount;
-    public readonly string $createdAt;
+    public readonly ?PaymentMethodCard $card;
+    public readonly DateTimeImmutable $createdAt;
     /** @var array<string, string>|null */
     public readonly ?array $customData;
     public readonly string $customerId;
     public readonly ?bool $ephemeral;
-    public readonly ?string $expiresOn;
+    public readonly ?DateTimeImmutable $expiresOn;
     public readonly string $id;
     public readonly ?PaymentMethodMobileMoney $mobileMoney;
     public readonly ?PaymentMethodOwner $owner;
     public readonly string $type;
     public readonly ?PaymentMethodSupplied $supplied;
     public readonly ?PaymentMethodVerification $verification;
-    public readonly ?string $verifiedAt;
+    public readonly ?DateTimeImmutable $verifiedAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->active = ValueHydrator::bool($data['active'] ?? null, false);
-        $this->archivedAt = ValueHydrator::string($data['archived_at'] ?? null, true);
+        $this->archivedAt = ValueHydrator::dateTime($data['archived_at'] ?? null, true);
         $this->bankAccount = ValueHydrator::object($data['bank_account'] ?? null, [PaymentMethodBankAccount::class], true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->card = ValueHydrator::object($data['card'] ?? null, [PaymentMethodCard::class], true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
         $this->customerId = ValueHydrator::string($data['customer_id'] ?? null, false);
         $this->ephemeral = ValueHydrator::bool($data['ephemeral'] ?? null, true);
-        $this->expiresOn = ValueHydrator::string($data['expires_on'] ?? null, true);
+        $this->expiresOn = ValueHydrator::dateTime($data['expires_on'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->mobileMoney = ValueHydrator::object($data['mobile_money'] ?? null, [PaymentMethodMobileMoney::class], true);
         $this->owner = ValueHydrator::object($data['owner'] ?? null, [PaymentMethodOwner::class], true);
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
         $this->supplied = ValueHydrator::object($data['supplied'] ?? null, [PaymentMethodSupplied::class], true);
         $this->verification = ValueHydrator::object($data['verification'] ?? null, [PaymentMethodVerification::class], true);
-        $this->verifiedAt = ValueHydrator::string($data['verified_at'] ?? null, true);
+        $this->verifiedAt = ValueHydrator::dateTime($data['verified_at'] ?? null, true);
     }
+
+    /** @param array<string, mixed> $data */
+    public static function fromArray(array $data): static
+    {
+        return new static($data);
+    }
+}
+
+final class PaymentMethodCard extends DomainValue
+{
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): static
@@ -3472,7 +3573,7 @@ final class PaymentMethodSupplied extends DomainValue
     public readonly ?string $channel;
     public readonly ?string $resourceId;
     public readonly ?string $resourceType;
-    public readonly string $suppliedAt;
+    public readonly DateTimeImmutable $suppliedAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -3482,7 +3583,7 @@ final class PaymentMethodSupplied extends DomainValue
         $this->channel = ValueHydrator::string($data['channel'] ?? null, true);
         $this->resourceId = ValueHydrator::string($data['resource_id'] ?? null, true);
         $this->resourceType = ValueHydrator::string($data['resource_type'] ?? null, true);
-        $this->suppliedAt = ValueHydrator::string($data['supplied_at'] ?? null, false);
+        $this->suppliedAt = ValueHydrator::dateTime($data['supplied_at'] ?? null, false);
     }
 
     /** @param array<string, mixed> $data */
@@ -3519,8 +3620,8 @@ final class PaymentMethodTypeSetting extends DomainValue
 
 final class PaymentMethodVerification extends DomainValue
 {
-    public readonly ?string $completedAt;
-    public readonly string $initiatedAt;
+    public readonly ?DateTimeImmutable $completedAt;
+    public readonly DateTimeImmutable $initiatedAt;
     public readonly ?string $mechanism;
     public readonly string $requestId;
     public readonly string $type;
@@ -3528,8 +3629,8 @@ final class PaymentMethodVerification extends DomainValue
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->completedAt = ValueHydrator::string($data['completed_at'] ?? null, true);
-        $this->initiatedAt = ValueHydrator::string($data['initiated_at'] ?? null, false);
+        $this->completedAt = ValueHydrator::dateTime($data['completed_at'] ?? null, true);
+        $this->initiatedAt = ValueHydrator::dateTime($data['initiated_at'] ?? null, false);
         $this->mechanism = ValueHydrator::string($data['mechanism'] ?? null, true);
         $this->requestId = ValueHydrator::string($data['request_id'] ?? null, false);
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
@@ -3546,19 +3647,39 @@ final class PaymentMethodVerificationSession extends DomainValue
 {
     public readonly string $paymentMethodId;
     public readonly string $status;
-    public readonly ?string $tokenSentAt;
-    public readonly ?string $expiresAt;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $delivery;
+    public readonly ?DateTimeImmutable $tokenSentAt;
+    public readonly ?DateTimeImmutable $expiresAt;
+    public readonly ?PaymentMethodVerificationDelivery $delivery;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->paymentMethodId = ValueHydrator::string($data['payment_method_id'] ?? null, false);
         $this->status = ValueHydrator::string($data['status'] ?? null, false);
-        $this->tokenSentAt = ValueHydrator::string($data['token_sent_at'] ?? null, true);
-        $this->expiresAt = ValueHydrator::string($data['expires_at'] ?? null, true);
-        $this->delivery = ValueHydrator::array($data['delivery'] ?? null, true);
+        $this->tokenSentAt = ValueHydrator::dateTime($data['token_sent_at'] ?? null, true);
+        $this->expiresAt = ValueHydrator::dateTime($data['expires_at'] ?? null, true);
+        $this->delivery = ValueHydrator::object($data['delivery'] ?? null, [PaymentMethodVerificationDelivery::class], true);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function fromArray(array $data): static
+    {
+        return new static($data);
+    }
+}
+
+final class PaymentMethodVerificationDelivery extends DomainValue
+{
+    public readonly ?string $recipient;
+    public readonly ?string $channel;
+    public readonly ?string $senderId;
+
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data)
+    {
+        $this->recipient = ValueHydrator::string($data['recipient'] ?? null, true);
+        $this->channel = ValueHydrator::string($data['channel'] ?? null, true);
+        $this->senderId = ValueHydrator::string($data['sender_id'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -3572,19 +3693,18 @@ final class PaymentNextAction extends DomainValue
 {
     public readonly string $type;
     public readonly ?PaymentNextActionConfirmPayment $confirmPayment;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $execute;
     public readonly ?PaymentNextActionRedirect $redirect;
     public readonly ?PaymentNextActionAuthorize $authorize;
+    public readonly ?PaymentNextActionRequestConfirmation $requestConfirmation;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
         $this->confirmPayment = ValueHydrator::object($data['confirm_payment'] ?? null, [PaymentNextActionConfirmPayment::class], true);
-        $this->execute = ValueHydrator::array($data['execute'] ?? null, true);
         $this->redirect = ValueHydrator::object($data['redirect'] ?? null, [PaymentNextActionRedirect::class], true);
         $this->authorize = ValueHydrator::object($data['authorize'] ?? null, [PaymentNextActionAuthorize::class], true);
+        $this->requestConfirmation = ValueHydrator::object($data['request_confirmation'] ?? null, [PaymentNextActionRequestConfirmation::class], true);
     }
 
     /** @param array<string, mixed> $data */
@@ -3596,16 +3716,16 @@ final class PaymentNextAction extends DomainValue
 
 final class PaymentNextActionAuthorize extends DomainValue
 {
-    public readonly ?string $beneficiary;
-    public readonly ?string $scheme;
-    public readonly ?string $expiresAt;
+    public readonly string $beneficiary;
+    public readonly string $scheme;
+    public readonly DateTimeImmutable $expiresAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->beneficiary = ValueHydrator::string($data['beneficiary'] ?? null, true);
-        $this->scheme = ValueHydrator::string($data['scheme'] ?? null, true);
-        $this->expiresAt = ValueHydrator::string($data['expires_at'] ?? null, true);
+        $this->beneficiary = ValueHydrator::string($data['beneficiary'] ?? null, false);
+        $this->scheme = ValueHydrator::string($data['scheme'] ?? null, false);
+        $this->expiresAt = ValueHydrator::dateTime($data['expires_at'] ?? null, false);
     }
 
     /** @param array<string, mixed> $data */
@@ -3617,22 +3737,22 @@ final class PaymentNextActionAuthorize extends DomainValue
 
 final class PaymentNextActionConfirmPayment extends DomainValue
 {
-    public readonly ?string $expiresAt;
-    public readonly ?string $scheme;
+    public readonly DateTimeImmutable $expiresAt;
+    public readonly string $scheme;
     public readonly ?PaymentNextActionConfirmPaymentRequest $request;
     public readonly ?PaymentNextActionConfirmPaymentAttempt $attempt;
-    public readonly ?bool $confirmed;
-    public readonly ?string $status;
+    public readonly bool $confirmed;
+    public readonly string $status;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->expiresAt = ValueHydrator::string($data['expires_at'] ?? null, true);
-        $this->scheme = ValueHydrator::string($data['scheme'] ?? null, true);
+        $this->expiresAt = ValueHydrator::dateTime($data['expires_at'] ?? null, false);
+        $this->scheme = ValueHydrator::string($data['scheme'] ?? null, false);
         $this->request = ValueHydrator::object($data['request'] ?? null, [PaymentNextActionConfirmPaymentRequest::class], true);
         $this->attempt = ValueHydrator::object($data['attempt'] ?? null, [PaymentNextActionConfirmPaymentAttempt::class], true);
-        $this->confirmed = ValueHydrator::bool($data['confirmed'] ?? null, true);
-        $this->status = ValueHydrator::string($data['status'] ?? null, true);
+        $this->confirmed = ValueHydrator::bool($data['confirmed'] ?? null, false);
+        $this->status = ValueHydrator::string($data['status'] ?? null, false);
     }
 
     /** @param array<string, mixed> $data */
@@ -3644,22 +3764,20 @@ final class PaymentNextActionConfirmPayment extends DomainValue
 
 final class PaymentNextActionConfirmPaymentAttempt extends DomainValue
 {
-    public readonly ?string $status;
-    public readonly ?bool $confirmed;
-    public readonly ?string $reason;
-    public readonly ?string $token;
-    public readonly ?string $executedAt;
-    public readonly ?string $createdAt;
+    public readonly string $status;
+    public readonly bool $confirmed;
+    public readonly string $reason;
+    public readonly ?DateTimeImmutable $executedAt;
+    public readonly DateTimeImmutable $createdAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->status = ValueHydrator::string($data['status'] ?? null, true);
-        $this->confirmed = ValueHydrator::bool($data['confirmed'] ?? null, true);
-        $this->reason = ValueHydrator::string($data['reason'] ?? null, true);
-        $this->token = ValueHydrator::string($data['token'] ?? null, true);
-        $this->executedAt = ValueHydrator::string($data['executed_at'] ?? null, true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, true);
+        $this->status = ValueHydrator::string($data['status'] ?? null, false);
+        $this->confirmed = ValueHydrator::bool($data['confirmed'] ?? null, false);
+        $this->reason = ValueHydrator::string($data['reason'] ?? null, false);
+        $this->executedAt = ValueHydrator::dateTime($data['executed_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
     }
 
     /** @param array<string, mixed> $data */
@@ -3671,20 +3789,22 @@ final class PaymentNextActionConfirmPaymentAttempt extends DomainValue
 
 final class PaymentNextActionConfirmPaymentRequest extends DomainValue
 {
-    public readonly ?string $id;
-    public readonly ?string $recipient;
-    public readonly ?string $sentVia;
-    public readonly ?int $tokenSize;
-    public readonly ?string $senderId;
+    public readonly string $id;
+    public readonly string $recipient;
+    public readonly string $sentVia;
+    public readonly int $tokenSize;
+    public readonly string $senderId;
+    public readonly ?string $status;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->id = ValueHydrator::string($data['id'] ?? null, true);
-        $this->recipient = ValueHydrator::string($data['recipient'] ?? null, true);
-        $this->sentVia = ValueHydrator::string($data['sent_via'] ?? null, true);
-        $this->tokenSize = ValueHydrator::int($data['token_size'] ?? null, true);
-        $this->senderId = ValueHydrator::string($data['sender_id'] ?? null, true);
+        $this->id = ValueHydrator::string($data['id'] ?? null, false);
+        $this->recipient = ValueHydrator::string($data['recipient'] ?? null, false);
+        $this->sentVia = ValueHydrator::string($data['sent_via'] ?? null, false);
+        $this->tokenSize = ValueHydrator::int($data['token_size'] ?? null, false);
+        $this->senderId = ValueHydrator::string($data['sender_id'] ?? null, false);
+        $this->status = ValueHydrator::string($data['status'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -3696,15 +3816,15 @@ final class PaymentNextActionConfirmPaymentRequest extends DomainValue
 
 final class PaymentNextActionRedirect extends DomainValue
 {
-    public readonly ?string $redirectUrl;
-    public readonly ?string $validUntil;
+    public readonly string $redirectUrl;
+    public readonly DateTimeImmutable $validUntil;
     public readonly ?PaymentNextActionRedirectLatestVisit $latestVisit;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->redirectUrl = ValueHydrator::string($data['redirect_url'] ?? null, true);
-        $this->validUntil = ValueHydrator::string($data['valid_until'] ?? null, true);
+        $this->redirectUrl = ValueHydrator::string($data['redirect_url'] ?? null, false);
+        $this->validUntil = ValueHydrator::dateTime($data['valid_until'] ?? null, false);
         $this->latestVisit = ValueHydrator::object($data['latest_visit'] ?? null, [PaymentNextActionRedirectLatestVisit::class], true);
     }
 
@@ -3717,16 +3837,35 @@ final class PaymentNextActionRedirect extends DomainValue
 
 final class PaymentNextActionRedirectLatestVisit extends DomainValue
 {
-    public readonly ?string $userAgent;
-    public readonly ?string $ipAddress;
-    public readonly ?string $at;
+    public readonly string $userAgent;
+    public readonly string $ipAddress;
+    public readonly DateTimeImmutable $at;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->userAgent = ValueHydrator::string($data['user_agent'] ?? null, true);
-        $this->ipAddress = ValueHydrator::string($data['ip_address'] ?? null, true);
-        $this->at = ValueHydrator::string($data['at'] ?? null, true);
+        $this->userAgent = ValueHydrator::string($data['user_agent'] ?? null, false);
+        $this->ipAddress = ValueHydrator::string($data['ip_address'] ?? null, false);
+        $this->at = ValueHydrator::dateTime($data['at'] ?? null, false);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function fromArray(array $data): static
+    {
+        return new static($data);
+    }
+}
+
+final class PaymentNextActionRequestConfirmation extends DomainValue
+{
+    public readonly ?PaymentNextActionConfirmPaymentRequest $lastRequest;
+    public readonly ?DateTimeImmutable $after;
+
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data)
+    {
+        $this->lastRequest = ValueHydrator::object($data['last_request'] ?? null, [PaymentNextActionConfirmPaymentRequest::class], true);
+        $this->after = ValueHydrator::dateTime($data['after'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -3741,53 +3880,53 @@ final class Payout extends DomainValue
     public readonly ?Amount $amount;
     /** @var list<string>|null */
     public readonly ?array $balanceTransactions;
-    public readonly ?string $canceledAt;
+    public readonly ?DateTimeImmutable $canceledAt;
     /** @var array<string, string>|null */
     public readonly ?array $customData;
     public readonly string $destinationId;
     public readonly ?PayoutError $error;
-    public readonly string $executeAfter;
+    public readonly DateTimeImmutable $executeAfter;
     public readonly ?string $executedBy;
-    public readonly ?string $expectedAt;
-    public readonly ?string $failedAt;
+    public readonly ?DateTimeImmutable $expectedAt;
+    public readonly ?DateTimeImmutable $failedAt;
     public readonly string $id;
-    public readonly string $initiatedAt;
+    public readonly DateTimeImmutable $initiatedAt;
     public readonly ?string $initiatedBy;
     public readonly Amount $maxAmount;
     public readonly ?string $reference;
     public readonly ?string $scheduleId;
-    public readonly ?string $scheduledAt;
+    public readonly ?DateTimeImmutable $scheduledAt;
     public readonly ?string $scheduledBy;
-    public readonly ?string $sentAt;
+    public readonly ?DateTimeImmutable $sentAt;
     public readonly ?string $sourceId;
     public readonly string $status;
-    public readonly ?string $succeededAt;
+    public readonly ?DateTimeImmutable $succeededAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->amount = ValueHydrator::object($data['amount'] ?? null, [Amount::class], true);
         $this->balanceTransactions = ValueHydrator::array($data['balance_transactions'] ?? null, true);
-        $this->canceledAt = ValueHydrator::string($data['canceled_at'] ?? null, true);
+        $this->canceledAt = ValueHydrator::dateTime($data['canceled_at'] ?? null, true);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
         $this->destinationId = ValueHydrator::string($data['destination_id'] ?? null, false);
         $this->error = ValueHydrator::object($data['error'] ?? null, [PayoutError::class], true);
-        $this->executeAfter = ValueHydrator::string($data['execute_after'] ?? null, false);
+        $this->executeAfter = ValueHydrator::dateTime($data['execute_after'] ?? null, false);
         $this->executedBy = ValueHydrator::string($data['executed_by'] ?? null, true);
-        $this->expectedAt = ValueHydrator::string($data['expected_at'] ?? null, true);
-        $this->failedAt = ValueHydrator::string($data['failed_at'] ?? null, true);
+        $this->expectedAt = ValueHydrator::dateTime($data['expected_at'] ?? null, true);
+        $this->failedAt = ValueHydrator::dateTime($data['failed_at'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
-        $this->initiatedAt = ValueHydrator::string($data['initiated_at'] ?? null, false);
+        $this->initiatedAt = ValueHydrator::dateTime($data['initiated_at'] ?? null, false);
         $this->initiatedBy = ValueHydrator::string($data['initiated_by'] ?? null, true);
         $this->maxAmount = ValueHydrator::object($data['max_amount'] ?? null, [Amount::class], false);
         $this->reference = ValueHydrator::string($data['reference'] ?? null, true);
         $this->scheduleId = ValueHydrator::string($data['schedule_id'] ?? null, true);
-        $this->scheduledAt = ValueHydrator::string($data['scheduled_at'] ?? null, true);
+        $this->scheduledAt = ValueHydrator::dateTime($data['scheduled_at'] ?? null, true);
         $this->scheduledBy = ValueHydrator::string($data['scheduled_by'] ?? null, true);
-        $this->sentAt = ValueHydrator::string($data['sent_at'] ?? null, true);
+        $this->sentAt = ValueHydrator::dateTime($data['sent_at'] ?? null, true);
         $this->sourceId = ValueHydrator::string($data['source_id'] ?? null, true);
         $this->status = ValueHydrator::string($data['status'] ?? null, false);
-        $this->succeededAt = ValueHydrator::string($data['succeeded_at'] ?? null, true);
+        $this->succeededAt = ValueHydrator::dateTime($data['succeeded_at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -3801,7 +3940,7 @@ final class PayoutError extends DomainValue
 {
     public readonly string $cause;
     public readonly string $message;
-    public readonly string $occurredAt;
+    public readonly DateTimeImmutable $occurredAt;
     public readonly string $type;
 
     /** @param array<string, mixed> $data */
@@ -3809,7 +3948,7 @@ final class PayoutError extends DomainValue
     {
         $this->cause = ValueHydrator::string($data['cause'] ?? null, false);
         $this->message = ValueHydrator::string($data['message'] ?? null, false);
-        $this->occurredAt = ValueHydrator::string($data['occurred_at'] ?? null, false);
+        $this->occurredAt = ValueHydrator::dateTime($data['occurred_at'] ?? null, false);
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
     }
 
@@ -3995,9 +4134,9 @@ final class CatalogPrice extends DomainValue
     public readonly Amount $nominal;
     public readonly ?string $productId;
     public readonly ?PriceEmbeddedProduct $product;
-    public readonly string $createdAt;
-    public readonly ?string $updatedAt;
-    public readonly ?string $archivedAt;
+    public readonly DateTimeImmutable $createdAt;
+    public readonly ?DateTimeImmutable $updatedAt;
+    public readonly ?DateTimeImmutable $archivedAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -4009,9 +4148,9 @@ final class CatalogPrice extends DomainValue
         $this->nominal = ValueHydrator::object($data['nominal'] ?? null, [Amount::class], false);
         $this->productId = ValueHydrator::string($data['product_id'] ?? null, true);
         $this->product = ValueHydrator::object($data['product'] ?? null, [PriceEmbeddedProduct::class], true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, true);
-        $this->archivedAt = ValueHydrator::string($data['archived_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, true);
+        $this->archivedAt = ValueHydrator::dateTime($data['archived_at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -4026,27 +4165,24 @@ final class PriceEmbeddedProduct extends DomainValue
     public readonly string $id;
     public readonly ?string $about;
     public readonly bool $active;
-    public readonly ?string $archivedAt;
+    public readonly ?DateTimeImmutable $archivedAt;
     /** @var list<PriceEmbeddedProductAttributesItem>|null */
     public readonly ?array $attributes;
     public readonly ?string $category;
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     /** @var array<string, string>|null */
     public readonly ?array $customData;
     public readonly ?string $description;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $dimensions;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $media;
+    public readonly ?ProductDimensions $dimensions;
+    public readonly ?ProductMedia $media;
     public readonly string $name;
-    public readonly ?string $publishedAt;
+    public readonly ?DateTimeImmutable $publishedAt;
     public readonly ?string $reference;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $shipment;
+    public readonly ?ProductShipment $shipment;
     public readonly ?string $taxCode;
     public readonly string $type;
     public readonly ?string $unitDim;
-    public readonly ?string $updatedAt;
+    public readonly ?DateTimeImmutable $updatedAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -4054,22 +4190,22 @@ final class PriceEmbeddedProduct extends DomainValue
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->about = ValueHydrator::string($data['about'] ?? null, true);
         $this->active = ValueHydrator::bool($data['active'] ?? null, false);
-        $this->archivedAt = ValueHydrator::string($data['archived_at'] ?? null, true);
+        $this->archivedAt = ValueHydrator::dateTime($data['archived_at'] ?? null, true);
         $this->attributes = ValueHydrator::objects($data['attributes'] ?? null, [PriceEmbeddedProductAttributesItem::class]);
         $this->category = ValueHydrator::string($data['category'] ?? null, true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
         $this->description = ValueHydrator::string($data['description'] ?? null, true);
-        $this->dimensions = ValueHydrator::array($data['dimensions'] ?? null, true);
-        $this->media = ValueHydrator::array($data['media'] ?? null, true);
+        $this->dimensions = ValueHydrator::object($data['dimensions'] ?? null, [ProductDimensions::class], true);
+        $this->media = ValueHydrator::object($data['media'] ?? null, [ProductMedia::class], true);
         $this->name = ValueHydrator::string($data['name'] ?? null, false);
-        $this->publishedAt = ValueHydrator::string($data['published_at'] ?? null, true);
+        $this->publishedAt = ValueHydrator::dateTime($data['published_at'] ?? null, true);
         $this->reference = ValueHydrator::string($data['reference'] ?? null, true);
-        $this->shipment = ValueHydrator::array($data['shipment'] ?? null, true);
+        $this->shipment = ValueHydrator::object($data['shipment'] ?? null, [ProductShipment::class], true);
         $this->taxCode = ValueHydrator::string($data['tax_code'] ?? null, true);
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
         $this->unitDim = ValueHydrator::string($data['unit_dim'] ?? null, true);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, true);
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -4140,10 +4276,10 @@ final class Product extends DomainValue
     /** @var array<string, string>|null */
     public readonly ?array $customData;
     public readonly bool $active;
-    public readonly string $createdAt;
-    public readonly ?string $updatedAt;
-    public readonly ?string $archivedAt;
-    public readonly ?string $publishedAt;
+    public readonly DateTimeImmutable $createdAt;
+    public readonly ?DateTimeImmutable $updatedAt;
+    public readonly ?DateTimeImmutable $archivedAt;
+    public readonly ?DateTimeImmutable $publishedAt;
     public readonly ?string $unitDim;
 
     /** @param array<string, mixed> $data */
@@ -4164,10 +4300,10 @@ final class Product extends DomainValue
         $this->dimensions = ValueHydrator::object($data['dimensions'] ?? null, [ProductDimensions::class], true);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
         $this->active = ValueHydrator::bool($data['active'] ?? null, false);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, true);
-        $this->archivedAt = ValueHydrator::string($data['archived_at'] ?? null, true);
-        $this->publishedAt = ValueHydrator::string($data['published_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, true);
+        $this->archivedAt = ValueHydrator::dateTime($data['archived_at'] ?? null, true);
+        $this->publishedAt = ValueHydrator::dateTime($data['published_at'] ?? null, true);
         $this->unitDim = ValueHydrator::string($data['unit_dim'] ?? null, true);
     }
 
@@ -4329,16 +4465,16 @@ final class ProductMedia extends DomainValue
 
 final class ProductPage extends DomainValue
 {
-    public readonly ?int $number;
-    public readonly ?int $size;
-    /** @var list<Product>|null */
-    public readonly ?array $products;
+    public readonly int $number;
+    public readonly int $size;
+    /** @var list<Product> */
+    public readonly array $products;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->number = ValueHydrator::int($data['number'] ?? null, true);
-        $this->size = ValueHydrator::int($data['size'] ?? null, true);
+        $this->number = ValueHydrator::int($data['number'] ?? null, false);
+        $this->size = ValueHydrator::int($data['size'] ?? null, false);
         $this->products = ValueHydrator::objects($data['products'] ?? null, [Product::class]);
     }
 
@@ -4375,26 +4511,21 @@ final class ProductPriceSummary extends DomainValue
 final class ProductShipment extends DomainValue
 {
     public readonly string $type;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $delivery;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $download;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $render;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $service;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $stream;
+    public readonly ?ProductDelivery $delivery;
+    public readonly ?ProductDownload $download;
+    public readonly ?ProductRender $render;
+    public readonly ?ProductService $service;
+    public readonly ?ProductStream $stream;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
-        $this->delivery = ValueHydrator::array($data['delivery'] ?? null, true);
-        $this->download = ValueHydrator::array($data['download'] ?? null, true);
-        $this->render = ValueHydrator::array($data['render'] ?? null, true);
-        $this->service = ValueHydrator::array($data['service'] ?? null, true);
-        $this->stream = ValueHydrator::array($data['stream'] ?? null, true);
+        $this->delivery = ValueHydrator::object($data['delivery'] ?? null, [ProductDelivery::class], true);
+        $this->download = ValueHydrator::object($data['download'] ?? null, [ProductDownload::class], true);
+        $this->render = ValueHydrator::object($data['render'] ?? null, [ProductRender::class], true);
+        $this->service = ValueHydrator::object($data['service'] ?? null, [ProductService::class], true);
+        $this->stream = ValueHydrator::object($data['stream'] ?? null, [ProductStream::class], true);
     }
 
     /** @param array<string, mixed> $data */
@@ -4402,6 +4533,36 @@ final class ProductShipment extends DomainValue
     {
         return new static($data);
     }
+}
+
+final class ProductDelivery extends DomainValue
+{
+    public function __construct(array $data) {}
+    public static function fromArray(array $data): static { return new static($data); }
+}
+
+final class ProductDownload extends DomainValue
+{
+    public function __construct(array $data) {}
+    public static function fromArray(array $data): static { return new static($data); }
+}
+
+final class ProductRender extends DomainValue
+{
+    public function __construct(array $data) {}
+    public static function fromArray(array $data): static { return new static($data); }
+}
+
+final class ProductService extends DomainValue
+{
+    public function __construct(array $data) {}
+    public static function fromArray(array $data): static { return new static($data); }
+}
+
+final class ProductStream extends DomainValue
+{
+    public function __construct(array $data) {}
+    public static function fromArray(array $data): static { return new static($data); }
 }
 
 final class PublicFileStorage extends DomainValue
@@ -4425,36 +4586,36 @@ final class PublicFileStorage extends DomainValue
 
 final class PurchaseIntent extends DomainValue
 {
-    public readonly ?PurchaseIntentActivity $activity;
+    public readonly ?PurchaseIntentActivityLog $activity;
     public readonly bool $allowVariants;
-    public readonly string $createdAt;
-    public readonly ?string $expiresAt;
+    public readonly DateTimeImmutable $createdAt;
+    public readonly ?DateTimeImmutable $expiresAt;
     public readonly string $id;
-    public readonly ?string $inactiveAt;
+    public readonly ?DateTimeImmutable $inactiveAt;
     public readonly ?PurchaseIntentMerchant $merchant;
     public readonly ?PurchaseIntentPrice $price;
     public readonly ?PurchaseIntentProduct $product;
     public readonly PurchaseIntentQuantity $quantity;
-    public readonly string $status;
-    public readonly ?string $updatedAt;
+    public readonly PurchaseIntentStatus $status;
+    public readonly ?DateTimeImmutable $updatedAt;
     public readonly PurchaseIntentUsage $usage;
     public readonly ?PurchaseIntentVariantSet $variantSet;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->activity = ValueHydrator::object($data['activity'] ?? null, [PurchaseIntentActivity::class], true);
+        $this->activity = ValueHydrator::object($data['activity'] ?? null, [PurchaseIntentActivityLog::class], true);
         $this->allowVariants = ValueHydrator::bool($data['allow_variants'] ?? null, false);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
-        $this->expiresAt = ValueHydrator::string($data['expires_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
+        $this->expiresAt = ValueHydrator::dateTime($data['expires_at'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
-        $this->inactiveAt = ValueHydrator::string($data['inactive_at'] ?? null, true);
+        $this->inactiveAt = ValueHydrator::dateTime($data['inactive_at'] ?? null, true);
         $this->merchant = ValueHydrator::object($data['merchant'] ?? null, [PurchaseIntentMerchant::class], true);
         $this->price = ValueHydrator::object($data['price'] ?? null, [PurchaseIntentPrice::class], true);
         $this->product = ValueHydrator::object($data['product'] ?? null, [PurchaseIntentProduct::class], true);
         $this->quantity = ValueHydrator::object($data['quantity'] ?? null, [PurchaseIntentQuantity::class], false);
-        $this->status = ValueHydrator::string($data['status'] ?? null, false);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, true);
+        $this->status = PurchaseIntentStatus::from(ValueHydrator::string($data['status'] ?? null, false));
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, true);
         $this->usage = ValueHydrator::object($data['usage'] ?? null, [PurchaseIntentUsage::class], false);
         $this->variantSet = ValueHydrator::object($data['variant_set'] ?? null, [PurchaseIntentVariantSet::class], true);
     }
@@ -4466,7 +4627,7 @@ final class PurchaseIntent extends DomainValue
     }
 }
 
-final class PurchaseIntentActivity extends DomainValue
+final class PurchaseIntentActivityLog extends DomainValue
 {
     /** @var list<PurchaseIntentActivity>|null */
     public readonly ?array $recent;
@@ -4475,6 +4636,119 @@ final class PurchaseIntentActivity extends DomainValue
     public function __construct(array $data)
     {
         $this->recent = ValueHydrator::objects($data['recent'] ?? null, [PurchaseIntentActivity::class]);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function fromArray(array $data): static
+    {
+        return new static($data);
+    }
+}
+
+final class PurchaseIntentActivity extends DomainValue
+{
+    public readonly ?Amount $amount;
+    public readonly ?PurchaseIntentActivityAttribution $attribution;
+    public readonly DateTimeImmutable $createdAt;
+    public readonly ?string $errorCode;
+    public readonly string $id;
+    public readonly ?string $orderId;
+    public readonly ?string $paymentId;
+    public readonly ?string $productId;
+    public readonly string $purchaseIntentId;
+    public readonly ?int $quantity;
+    public readonly ?string $source;
+    public readonly PurchaseIntentActivityType $type;
+    public readonly ?string $variantProductId;
+    public readonly ?PurchaseIntentActivityVisitor $visitor;
+
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data)
+    {
+        $this->amount = ValueHydrator::object($data['amount'] ?? null, [Amount::class], true);
+        $this->attribution = ValueHydrator::object($data['attribution'] ?? null, [PurchaseIntentActivityAttribution::class], true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
+        $this->errorCode = ValueHydrator::string($data['error_code'] ?? null, true);
+        $this->id = ValueHydrator::string($data['id'] ?? null, false);
+        $this->orderId = ValueHydrator::string($data['order_id'] ?? null, true);
+        $this->paymentId = ValueHydrator::string($data['payment_id'] ?? null, true);
+        $this->productId = ValueHydrator::string($data['product_id'] ?? null, true);
+        $this->purchaseIntentId = ValueHydrator::string($data['purchase_intent_id'] ?? null, false);
+        $this->quantity = ValueHydrator::int($data['quantity'] ?? null, true);
+        $this->source = ValueHydrator::string($data['source'] ?? null, true);
+        $this->type = PurchaseIntentActivityType::from(ValueHydrator::string($data['type'] ?? null, false));
+        $this->variantProductId = ValueHydrator::string($data['variant_product_id'] ?? null, true);
+        $this->visitor = ValueHydrator::object($data['visitor'] ?? null, [PurchaseIntentActivityVisitor::class], true);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function fromArray(array $data): static
+    {
+        return new static($data);
+    }
+}
+
+final class PurchaseIntentActivityAttribution extends DomainValue
+{
+    public readonly ?string $campaign;
+    public readonly ?string $channel;
+    public readonly ?string $content;
+    public readonly ?string $landingUrl;
+    public readonly ?string $medium;
+    public readonly ?string $referrer;
+    public readonly ?string $referrerHost;
+    public readonly ?string $source;
+    public readonly ?string $term;
+
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data)
+    {
+        $this->campaign = ValueHydrator::string($data['campaign'] ?? null, true);
+        $this->channel = ValueHydrator::string($data['channel'] ?? null, true);
+        $this->content = ValueHydrator::string($data['content'] ?? null, true);
+        $this->landingUrl = ValueHydrator::string($data['landing_url'] ?? null, true);
+        $this->medium = ValueHydrator::string($data['medium'] ?? null, true);
+        $this->referrer = ValueHydrator::string($data['referrer'] ?? null, true);
+        $this->referrerHost = ValueHydrator::string($data['referrer_host'] ?? null, true);
+        $this->source = ValueHydrator::string($data['source'] ?? null, true);
+        $this->term = ValueHydrator::string($data['term'] ?? null, true);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function fromArray(array $data): static
+    {
+        return new static($data);
+    }
+}
+
+final class PurchaseIntentActivityVisitor extends DomainValue
+{
+    public readonly ?string $browser;
+    public readonly ?string $city;
+    public readonly ?string $country;
+    public readonly ?string $device;
+    public readonly ?string $ipAddress;
+    public readonly ?string $os;
+    public readonly ?string $region;
+    public readonly ?string $sessionId;
+    public readonly ?string $timezone;
+    public readonly ?string $userAgent;
+    public readonly ?string $visitorId;
+
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data)
+    {
+        $this->browser = ValueHydrator::string($data['browser'] ?? null, true);
+        $this->city = ValueHydrator::string($data['city'] ?? null, true);
+        $this->country = ValueHydrator::string($data['country'] ?? null, true);
+        $this->device = ValueHydrator::string($data['device'] ?? null, true);
+        $this->ipAddress = ValueHydrator::string($data['ip_address'] ?? null, true);
+        $this->os = ValueHydrator::string($data['os'] ?? null, true);
+        $this->region = ValueHydrator::string($data['region'] ?? null, true);
+        $this->sessionId = ValueHydrator::string($data['session_id'] ?? null, true);
+        $this->timezone = ValueHydrator::string($data['timezone'] ?? null, true);
+        $this->userAgent = ValueHydrator::string($data['user_agent'] ?? null, true);
+        $this->visitorId = ValueHydrator::string($data['visitor_id'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -4580,27 +4854,24 @@ final class PurchaseIntentProduct extends DomainValue
     public readonly string $id;
     public readonly ?string $about;
     public readonly bool $active;
-    public readonly ?string $archivedAt;
+    public readonly ?DateTimeImmutable $archivedAt;
     /** @var list<PurchaseIntentProductAttributesItem>|null */
     public readonly ?array $attributes;
     public readonly ?string $category;
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     /** @var array<string, string>|null */
     public readonly ?array $customData;
     public readonly ?string $description;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $dimensions;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $media;
+    public readonly ?ProductDimensions $dimensions;
+    public readonly ?ProductMedia $media;
     public readonly string $name;
-    public readonly ?string $publishedAt;
+    public readonly ?DateTimeImmutable $publishedAt;
     public readonly ?string $reference;
-    /** @var array<string, mixed>|null */
-    public readonly ?array $shipment;
+    public readonly ?ProductShipment $shipment;
     public readonly ?string $taxCode;
     public readonly string $type;
     public readonly ?string $unitDim;
-    public readonly ?string $updatedAt;
+    public readonly ?DateTimeImmutable $updatedAt;
     /** @var list<ProductPriceSummary>|null */
     public readonly ?array $prices;
     public readonly ?string $variantSetId;
@@ -4611,22 +4882,22 @@ final class PurchaseIntentProduct extends DomainValue
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->about = ValueHydrator::string($data['about'] ?? null, true);
         $this->active = ValueHydrator::bool($data['active'] ?? null, false);
-        $this->archivedAt = ValueHydrator::string($data['archived_at'] ?? null, true);
+        $this->archivedAt = ValueHydrator::dateTime($data['archived_at'] ?? null, true);
         $this->attributes = ValueHydrator::objects($data['attributes'] ?? null, [PurchaseIntentProductAttributesItem::class]);
         $this->category = ValueHydrator::string($data['category'] ?? null, true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
         $this->description = ValueHydrator::string($data['description'] ?? null, true);
-        $this->dimensions = ValueHydrator::array($data['dimensions'] ?? null, true);
-        $this->media = ValueHydrator::array($data['media'] ?? null, true);
+        $this->dimensions = ValueHydrator::object($data['dimensions'] ?? null, [ProductDimensions::class], true);
+        $this->media = ValueHydrator::object($data['media'] ?? null, [ProductMedia::class], true);
         $this->name = ValueHydrator::string($data['name'] ?? null, false);
-        $this->publishedAt = ValueHydrator::string($data['published_at'] ?? null, true);
+        $this->publishedAt = ValueHydrator::dateTime($data['published_at'] ?? null, true);
         $this->reference = ValueHydrator::string($data['reference'] ?? null, true);
-        $this->shipment = ValueHydrator::array($data['shipment'] ?? null, true);
+        $this->shipment = ValueHydrator::object($data['shipment'] ?? null, [ProductShipment::class], true);
         $this->taxCode = ValueHydrator::string($data['tax_code'] ?? null, true);
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
         $this->unitDim = ValueHydrator::string($data['unit_dim'] ?? null, true);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, true);
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, true);
         $this->prices = ValueHydrator::objects($data['prices'] ?? null, [ProductPriceSummary::class]);
         $this->variantSetId = ValueHydrator::string($data['variant_set_id'] ?? null, true);
     }
@@ -4699,13 +4970,13 @@ final class PurchaseIntentUsage extends DomainValue
 
 final class PurchaseIntentUsageOrder extends DomainValue
 {
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     public readonly string $id;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
     }
 
@@ -4800,39 +5071,39 @@ final class PurchaseIntentVariantSet extends DomainValue
 
 final class Refund extends DomainValue
 {
-    public readonly ?string $canceledAt;
-    public readonly string $createdAt;
+    public readonly ?DateTimeImmutable $canceledAt;
+    public readonly DateTimeImmutable $createdAt;
     /** @var array<string, string>|null */
     public readonly ?array $customData;
-    public readonly ?string $failedAt;
+    public readonly ?DateTimeImmutable $failedAt;
     public readonly string $id;
     /** @var list<RefundLineItem> */
     public readonly array $lineItems;
     public readonly string $orderId;
-    public readonly ?string $processingAt;
+    public readonly ?DateTimeImmutable $processingAt;
     public readonly GenericValue $reason;
     public readonly ?string $reasonDetails;
     public readonly ?string $reference;
     public readonly string $status;
-    public readonly ?string $succeededAt;
+    public readonly ?DateTimeImmutable $succeededAt;
     public readonly Amount $total;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->canceledAt = ValueHydrator::string($data['canceled_at'] ?? null, true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->canceledAt = ValueHydrator::dateTime($data['canceled_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
-        $this->failedAt = ValueHydrator::string($data['failed_at'] ?? null, true);
+        $this->failedAt = ValueHydrator::dateTime($data['failed_at'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->lineItems = ValueHydrator::objects($data['line_items'] ?? null, [RefundLineItem::class]);
         $this->orderId = ValueHydrator::string($data['order_id'] ?? null, false);
-        $this->processingAt = ValueHydrator::string($data['processing_at'] ?? null, true);
+        $this->processingAt = ValueHydrator::dateTime($data['processing_at'] ?? null, true);
         $this->reason = ValueHydrator::object($data['reason'] ?? null, [GenericValue::class], false);
         $this->reasonDetails = ValueHydrator::string($data['reason_details'] ?? null, true);
         $this->reference = ValueHydrator::string($data['reference'] ?? null, true);
         $this->status = ValueHydrator::string($data['status'] ?? null, false);
-        $this->succeededAt = ValueHydrator::string($data['succeeded_at'] ?? null, true);
+        $this->succeededAt = ValueHydrator::dateTime($data['succeeded_at'] ?? null, true);
         $this->total = ValueHydrator::object($data['total'] ?? null, [Amount::class], false);
     }
 
@@ -4969,7 +5240,7 @@ final class ResourceSupply extends DomainValue
     public readonly ?string $channel;
     public readonly ?string $resourceId;
     public readonly ?string $resourceType;
-    public readonly string $suppliedAt;
+    public readonly DateTimeImmutable $suppliedAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -4979,7 +5250,7 @@ final class ResourceSupply extends DomainValue
         $this->channel = ValueHydrator::string($data['channel'] ?? null, true);
         $this->resourceId = ValueHydrator::string($data['resource_id'] ?? null, true);
         $this->resourceType = ValueHydrator::string($data['resource_type'] ?? null, true);
-        $this->suppliedAt = ValueHydrator::string($data['supplied_at'] ?? null, false);
+        $this->suppliedAt = ValueHydrator::dateTime($data['supplied_at'] ?? null, false);
     }
 
     /** @param array<string, mixed> $data */
@@ -4994,39 +5265,39 @@ final class ScheduleCancelDetail extends DomainValue
     /** @var list<string>|null */
     public readonly ?array $chimeIds;
     public readonly string $content;
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     /** @var list<string>|null */
     public readonly ?array $customerIds;
     public readonly ?ChimeEmailMessage $email;
     /** @var list<ScheduleError>|null */
     public readonly ?array $errors;
-    public readonly ?string $executedAt;
+    public readonly ?DateTimeImmutable $executedAt;
     public readonly string $id;
     public readonly ?string $idempotencyKey;
     public readonly ?string $purpose;
     /** @var list<string> */
     public readonly array $recipients;
-    public readonly string $sendAfter;
+    public readonly DateTimeImmutable $sendAfter;
     public readonly string $senderId;
-    public readonly ?string $canceledAt;
+    public readonly ?DateTimeImmutable $canceledAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->chimeIds = ValueHydrator::array($data['chime_ids'] ?? null, true);
         $this->content = ValueHydrator::string($data['content'] ?? null, false);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customerIds = ValueHydrator::array($data['customer_ids'] ?? null, true);
         $this->email = ValueHydrator::object($data['email'] ?? null, [ChimeEmailMessage::class], true);
         $this->errors = ValueHydrator::objects($data['errors'] ?? null, [ScheduleError::class]);
-        $this->executedAt = ValueHydrator::string($data['executed_at'] ?? null, true);
+        $this->executedAt = ValueHydrator::dateTime($data['executed_at'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->idempotencyKey = ValueHydrator::string($data['idempotency_key'] ?? null, true);
         $this->purpose = ValueHydrator::string($data['purpose'] ?? null, true);
         $this->recipients = ValueHydrator::array($data['recipients'] ?? null, false);
-        $this->sendAfter = ValueHydrator::string($data['send_after'] ?? null, false);
+        $this->sendAfter = ValueHydrator::dateTime($data['send_after'] ?? null, false);
         $this->senderId = ValueHydrator::string($data['sender_id'] ?? null, false);
-        $this->canceledAt = ValueHydrator::string($data['canceled_at'] ?? null, true);
+        $this->canceledAt = ValueHydrator::dateTime($data['canceled_at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -5038,33 +5309,33 @@ final class ScheduleCancelDetail extends DomainValue
 
 final class ScheduleCreationDetail extends DomainValue
 {
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     /** @var list<string>|null */
     public readonly ?array $customerIds;
     public readonly ?ChimeEmailMessage $email;
-    public readonly ?string $executedAt;
+    public readonly ?DateTimeImmutable $executedAt;
     public readonly string $fullMessage;
     public readonly string $id;
     public readonly ?string $idempotencyKey;
     public readonly ?string $purpose;
     /** @var list<string>|null */
     public readonly ?array $recipients;
-    public readonly string $sendAfter;
+    public readonly DateTimeImmutable $sendAfter;
     public readonly string $senderId;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customerIds = ValueHydrator::array($data['customer_ids'] ?? null, true);
         $this->email = ValueHydrator::object($data['email'] ?? null, [ChimeEmailMessage::class], true);
-        $this->executedAt = ValueHydrator::string($data['executed_at'] ?? null, true);
+        $this->executedAt = ValueHydrator::dateTime($data['executed_at'] ?? null, true);
         $this->fullMessage = ValueHydrator::string($data['full_message'] ?? null, false);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->idempotencyKey = ValueHydrator::string($data['idempotency_key'] ?? null, true);
         $this->purpose = ValueHydrator::string($data['purpose'] ?? null, true);
         $this->recipients = ValueHydrator::array($data['recipients'] ?? null, true);
-        $this->sendAfter = ValueHydrator::string($data['send_after'] ?? null, false);
+        $this->sendAfter = ValueHydrator::dateTime($data['send_after'] ?? null, false);
         $this->senderId = ValueHydrator::string($data['sender_id'] ?? null, false);
     }
 
@@ -5080,19 +5351,19 @@ final class ScheduleDetail extends DomainValue
     /** @var list<string>|null */
     public readonly ?array $chimeIds;
     public readonly string $content;
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     /** @var list<string>|null */
     public readonly ?array $customerIds;
     public readonly ?ChimeEmailMessage $email;
     /** @var list<ScheduleError>|null */
     public readonly ?array $errors;
-    public readonly ?string $executedAt;
+    public readonly ?DateTimeImmutable $executedAt;
     public readonly string $id;
     public readonly ?string $idempotencyKey;
     public readonly ?string $purpose;
     /** @var list<string> */
     public readonly array $recipients;
-    public readonly string $sendAfter;
+    public readonly DateTimeImmutable $sendAfter;
     public readonly string $senderId;
 
     /** @param array<string, mixed> $data */
@@ -5100,16 +5371,16 @@ final class ScheduleDetail extends DomainValue
     {
         $this->chimeIds = ValueHydrator::array($data['chime_ids'] ?? null, true);
         $this->content = ValueHydrator::string($data['content'] ?? null, false);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->customerIds = ValueHydrator::array($data['customer_ids'] ?? null, true);
         $this->email = ValueHydrator::object($data['email'] ?? null, [ChimeEmailMessage::class], true);
         $this->errors = ValueHydrator::objects($data['errors'] ?? null, [ScheduleError::class]);
-        $this->executedAt = ValueHydrator::string($data['executed_at'] ?? null, true);
+        $this->executedAt = ValueHydrator::dateTime($data['executed_at'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->idempotencyKey = ValueHydrator::string($data['idempotency_key'] ?? null, true);
         $this->purpose = ValueHydrator::string($data['purpose'] ?? null, true);
         $this->recipients = ValueHydrator::array($data['recipients'] ?? null, false);
-        $this->sendAfter = ValueHydrator::string($data['send_after'] ?? null, false);
+        $this->sendAfter = ValueHydrator::dateTime($data['send_after'] ?? null, false);
         $this->senderId = ValueHydrator::string($data['sender_id'] ?? null, false);
     }
 
@@ -5146,13 +5417,13 @@ final class SecretKey extends DomainValue
     public readonly string $id;
     public readonly ?string $label;
     public readonly string $tokenType;
-    public readonly string $issuedAt;
-    public readonly ?string $updatedAt;
-    public readonly ?string $expiresAt;
+    public readonly DateTimeImmutable $issuedAt;
+    public readonly ?DateTimeImmutable $updatedAt;
+    public readonly ?DateTimeImmutable $expiresAt;
     public readonly string $status;
     public readonly bool $active;
-    public readonly ?string $revokedAt;
-    public readonly ?string $lastUsedAt;
+    public readonly ?DateTimeImmutable $revokedAt;
+    public readonly ?DateTimeImmutable $lastUsedAt;
     public readonly ?int $usageCount;
 
     /** @param array<string, mixed> $data */
@@ -5161,13 +5432,13 @@ final class SecretKey extends DomainValue
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->label = ValueHydrator::string($data['label'] ?? null, true);
         $this->tokenType = ValueHydrator::string($data['token_type'] ?? null, false);
-        $this->issuedAt = ValueHydrator::string($data['issued_at'] ?? null, false);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, true);
-        $this->expiresAt = ValueHydrator::string($data['expires_at'] ?? null, true);
+        $this->issuedAt = ValueHydrator::dateTime($data['issued_at'] ?? null, false);
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, true);
+        $this->expiresAt = ValueHydrator::dateTime($data['expires_at'] ?? null, true);
         $this->status = ValueHydrator::string($data['status'] ?? null, false);
         $this->active = ValueHydrator::bool($data['active'] ?? null, false);
-        $this->revokedAt = ValueHydrator::string($data['revoked_at'] ?? null, true);
-        $this->lastUsedAt = ValueHydrator::string($data['last_used_at'] ?? null, true);
+        $this->revokedAt = ValueHydrator::dateTime($data['revoked_at'] ?? null, true);
+        $this->lastUsedAt = ValueHydrator::dateTime($data['last_used_at'] ?? null, true);
         $this->usageCount = ValueHydrator::int($data['usage_count'] ?? null, true);
     }
 
@@ -5256,14 +5527,14 @@ final class SecretKeyUsagePage extends DomainValue
 final class SecretKeyUsageRow extends DomainValue
 {
     public readonly string $secretKeyId;
-    public readonly string $occurredAt;
+    public readonly DateTimeImmutable $occurredAt;
     public readonly string $authResult;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
         $this->secretKeyId = ValueHydrator::string($data['secret_key_id'] ?? null, false);
-        $this->occurredAt = ValueHydrator::string($data['occurred_at'] ?? null, false);
+        $this->occurredAt = ValueHydrator::dateTime($data['occurred_at'] ?? null, false);
         $this->authResult = ValueHydrator::string($data['auth_result'] ?? null, false);
     }
 
@@ -5290,8 +5561,8 @@ final class UpdatedProduct extends DomainValue
     /** @var list<ProductPriceSummary>|null */
     public readonly ?array $prices;
     public readonly ?string $unitDim;
-    public readonly string $createdAt;
-    public readonly ?string $updatedAt;
+    public readonly DateTimeImmutable $createdAt;
+    public readonly ?DateTimeImmutable $updatedAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -5308,8 +5579,8 @@ final class UpdatedProduct extends DomainValue
         $this->dimensions = ValueHydrator::object($data['dimensions'] ?? null, [ProductDimensions::class], true);
         $this->prices = ValueHydrator::objects($data['prices'] ?? null, [ProductPriceSummary::class]);
         $this->unitDim = ValueHydrator::string($data['unit_dim'] ?? null, true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -5359,13 +5630,13 @@ final class UploadRequest extends DomainValue
     public readonly ?array $customData;
     /** @var array<string, string>|null */
     public readonly ?array $metadata;
-    public readonly string $createdAt;
-    public readonly string $updatedAt;
-    public readonly string $expiresAt;
-    public readonly ?string $uploadingAt;
-    public readonly ?string $fulfilledAt;
-    public readonly ?string $expiredAt;
-    public readonly ?string $canceledAt;
+    public readonly DateTimeImmutable $createdAt;
+    public readonly DateTimeImmutable $updatedAt;
+    public readonly DateTimeImmutable $expiresAt;
+    public readonly ?DateTimeImmutable $uploadingAt;
+    public readonly ?DateTimeImmutable $fulfilledAt;
+    public readonly ?DateTimeImmutable $expiredAt;
+    public readonly ?DateTimeImmutable $canceledAt;
     public readonly ?UploadRequestAttempt $attempt;
 
     /** @param array<string, mixed> $data */
@@ -5388,13 +5659,13 @@ final class UploadRequest extends DomainValue
         $this->canceledBy = ValueHydrator::object($data['canceled_by'] ?? null, [UploadRequestActor::class], true);
         $this->customData = ValueHydrator::array($data['custom_data'] ?? null, true);
         $this->metadata = ValueHydrator::array($data['metadata'] ?? null, true);
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
-        $this->updatedAt = ValueHydrator::string($data['updated_at'] ?? null, false);
-        $this->expiresAt = ValueHydrator::string($data['expires_at'] ?? null, false);
-        $this->uploadingAt = ValueHydrator::string($data['uploading_at'] ?? null, true);
-        $this->fulfilledAt = ValueHydrator::string($data['fulfilled_at'] ?? null, true);
-        $this->expiredAt = ValueHydrator::string($data['expired_at'] ?? null, true);
-        $this->canceledAt = ValueHydrator::string($data['canceled_at'] ?? null, true);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
+        $this->updatedAt = ValueHydrator::dateTime($data['updated_at'] ?? null, false);
+        $this->expiresAt = ValueHydrator::dateTime($data['expires_at'] ?? null, false);
+        $this->uploadingAt = ValueHydrator::dateTime($data['uploading_at'] ?? null, true);
+        $this->fulfilledAt = ValueHydrator::dateTime($data['fulfilled_at'] ?? null, true);
+        $this->expiredAt = ValueHydrator::dateTime($data['expired_at'] ?? null, true);
+        $this->canceledAt = ValueHydrator::dateTime($data['canceled_at'] ?? null, true);
         $this->attempt = ValueHydrator::object($data['attempt'] ?? null, [UploadRequestAttempt::class], true);
     }
 
@@ -5430,35 +5701,35 @@ final class UploadRequestActor extends DomainValue
 
 final class UploadRequestAttempt extends DomainValue
 {
-    public readonly string $attemptedAt;
+    public readonly DateTimeImmutable $attemptedAt;
     public readonly ?string $contentType;
     public readonly ?int $declaredSize;
     public readonly ?UploadRequestLatestError $error;
-    public readonly ?string $failedAt;
+    public readonly ?DateTimeImmutable $failedAt;
     public readonly ?string $fileId;
     public readonly ?string $filename;
     public readonly string $id;
     public readonly int $ordinal;
     public readonly ?UploadRequestReview $review;
     public readonly string $status;
-    public readonly ?string $succeededAt;
+    public readonly ?DateTimeImmutable $succeededAt;
     public readonly string $uploadRequestId;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->attemptedAt = ValueHydrator::string($data['attempted_at'] ?? null, false);
+        $this->attemptedAt = ValueHydrator::dateTime($data['attempted_at'] ?? null, false);
         $this->contentType = ValueHydrator::string($data['content_type'] ?? null, true);
         $this->declaredSize = ValueHydrator::int($data['declared_size'] ?? null, true);
         $this->error = ValueHydrator::object($data['error'] ?? null, [UploadRequestLatestError::class], true);
-        $this->failedAt = ValueHydrator::string($data['failed_at'] ?? null, true);
+        $this->failedAt = ValueHydrator::dateTime($data['failed_at'] ?? null, true);
         $this->fileId = ValueHydrator::string($data['file_id'] ?? null, true);
         $this->filename = ValueHydrator::string($data['filename'] ?? null, true);
         $this->id = ValueHydrator::string($data['id'] ?? null, false);
         $this->ordinal = ValueHydrator::int($data['ordinal'] ?? null, false);
         $this->review = ValueHydrator::object($data['review'] ?? null, [UploadRequestReview::class], true);
         $this->status = ValueHydrator::string($data['status'] ?? null, false);
-        $this->succeededAt = ValueHydrator::string($data['succeeded_at'] ?? null, true);
+        $this->succeededAt = ValueHydrator::dateTime($data['succeeded_at'] ?? null, true);
         $this->uploadRequestId = ValueHydrator::string($data['upload_request_id'] ?? null, false);
     }
 
@@ -5474,7 +5745,7 @@ final class UploadRequestAttempts extends DomainValue
     public readonly ?int $maxAttempts;
     public readonly int $attemptCount;
     public readonly int $failedAttemptCount;
-    public readonly ?string $lastAttemptedAt;
+    public readonly ?DateTimeImmutable $lastAttemptedAt;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -5482,7 +5753,7 @@ final class UploadRequestAttempts extends DomainValue
         $this->maxAttempts = ValueHydrator::int($data['max_attempts'] ?? null, true);
         $this->attemptCount = ValueHydrator::int($data['attempt_count'] ?? null, false);
         $this->failedAttemptCount = ValueHydrator::int($data['failed_attempt_count'] ?? null, false);
-        $this->lastAttemptedAt = ValueHydrator::string($data['last_attempted_at'] ?? null, true);
+        $this->lastAttemptedAt = ValueHydrator::dateTime($data['last_attempted_at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -5548,7 +5819,7 @@ final class UploadRequestLatestError extends DomainValue
     public readonly ?string $param;
     public readonly ?string $message;
     public readonly ?bool $retryable;
-    public readonly ?string $at;
+    public readonly ?DateTimeImmutable $at;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
@@ -5557,7 +5828,7 @@ final class UploadRequestLatestError extends DomainValue
         $this->param = ValueHydrator::string($data['param'] ?? null, true);
         $this->message = ValueHydrator::string($data['message'] ?? null, true);
         $this->retryable = ValueHydrator::bool($data['retryable'] ?? null, true);
-        $this->at = ValueHydrator::string($data['at'] ?? null, true);
+        $this->at = ValueHydrator::dateTime($data['at'] ?? null, true);
     }
 
     /** @param array<string, mixed> $data */
@@ -5591,24 +5862,24 @@ final class UploadRequestPage extends DomainValue
 
 final class UploadRequestReview extends DomainValue
 {
-    public readonly string $createdAt;
+    public readonly DateTimeImmutable $createdAt;
     public readonly string $decision;
     public readonly ?string $fileId;
     public readonly ?string $publicMessage;
     /** @var list<UploadRequestReviewReason>|null */
     public readonly ?array $reasons;
-    public readonly string $reviewedAt;
+    public readonly DateTimeImmutable $reviewedAt;
     public readonly string $type;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->createdAt = ValueHydrator::string($data['created_at'] ?? null, false);
+        $this->createdAt = ValueHydrator::dateTime($data['created_at'] ?? null, false);
         $this->decision = ValueHydrator::string($data['decision'] ?? null, false);
         $this->fileId = ValueHydrator::string($data['file_id'] ?? null, true);
         $this->publicMessage = ValueHydrator::string($data['public_message'] ?? null, true);
         $this->reasons = ValueHydrator::objects($data['reasons'] ?? null, [UploadRequestReviewReason::class]);
-        $this->reviewedAt = ValueHydrator::string($data['reviewed_at'] ?? null, false);
+        $this->reviewedAt = ValueHydrator::dateTime($data['reviewed_at'] ?? null, false);
         $this->type = ValueHydrator::string($data['type'] ?? null, false);
     }
 
@@ -5641,16 +5912,15 @@ final class UploadRequestReviewReason extends DomainValue
 }
 
 
-/** Snapshot of balances keyed by currency code. */
+/** The application's latest GHS balance snapshot. */
 final class BalanceSnapshot extends DomainValue
 {
-    /** @var array<string, CurrencyBalanceSnapshot> */
-    public readonly array $balances;
+    public readonly CurrencyBalanceSnapshot $ghs;
 
     /** @param array<string, mixed> $data */
     public function __construct(array $data)
     {
-        $this->balances = ValueHydrator::objectMap($data['balances'] ?? $data, [CurrencyBalanceSnapshot::class]);
+        $this->ghs = ValueHydrator::object($data['ghs'] ?? null, [CurrencyBalanceSnapshot::class], false);
     }
 
     /** @param array<string, mixed> $data */

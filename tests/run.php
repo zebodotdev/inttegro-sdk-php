@@ -61,7 +61,6 @@ $adapter = function ($method, $url, $headers, $payload) use (&$requests) {
     $requests[] = compact('method', 'url', 'headers', 'payload');
     $path = parse_url($url, PHP_URL_PATH) ?: '';
     $body = match ($path) {
-        '/orders/refund' => ['refund' => ['id' => 'rf_1']],
         '/orders/page' => ['page' => ['number' => 0, 'size' => 0, 'orders' => []]],
         '/orders/send_invoice', '/orders/send_receipt' => [
             'order' => ['id' => 'or_1', 'status' => 'preparing'],
@@ -81,7 +80,6 @@ $adapter = function ($method, $url, $headers, $payload) use (&$requests) {
 $client = new Client('test-key', 'https://api.inttegro.com', 5, $adapter);
 
 $client->orders->create(['number' => 'ORDER-1']);
-$client->orders->createLegacy(['number' => 'ORDER-2']);
 $client->orders->lookup('or_1');
 $client->orders->update(['order_id' => 'or_1', 'number' => 'ORDER-1-REV2']);
 $client->orders->pay(['order_id' => 'or_1']);
@@ -92,14 +90,6 @@ $client->orders->sendInvoice(['order_id' => 'or_1']);
 $client->orders->sendReceipt(['order_id' => 'or_1']);
 $client->orders->complete(['order_id' => 'or_1']);
 $client->orders->cancel('or_1');
-$client->orders->refund([
-    'order_id' => 'or_1',
-    'reason' => 'requested_by_customer',
-    'line_items' => [[
-        'order_line_item_id' => 'oli_1',
-        'refund_amount' => ['currency' => 'ghs', 'value' => 100],
-    ]],
-]);
 $client->orders->page([]);
 
 $client->paymentMethods->tokenize(['type' => 'mobile_money']);
@@ -232,7 +222,6 @@ $client->balances->get();
 $paths = array_map(fn($req) => parse_url($req['url'], PHP_URL_PATH), $requests);
 $expected = [
     '/orders/create',
-    '/orders/new',
     '/orders/lookup',
     '/orders/update',
     '/orders/pay',
@@ -243,7 +232,6 @@ $expected = [
     '/orders/send_receipt',
     '/orders/complete',
     '/orders/cancel',
-    '/orders/refund',
     '/orders/page',
     '/payment_methods/tokenize',
     '/payment_methods/verify',

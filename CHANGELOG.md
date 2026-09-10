@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- Removed legacy order and property compatibility aliases; canonical resource methods and typed camelCase properties are now the only public surface.
+
 ## [6.0.1] - 2026-09-08
 
 - Tightened financial-account and payment-method response models to exclude internal platform fields.
