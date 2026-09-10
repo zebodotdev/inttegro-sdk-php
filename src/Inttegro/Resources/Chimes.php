@@ -84,7 +84,7 @@ class Chimes
      *
      * echo "Recipient type: {$chime->recipient->type}\n";
      * echo "Status: {$chime->transmission?->status}\n";
-     * echo "Sent at: {$chime->transmission?->sentAt}\n";
+     * echo "Sent at: " . $chime->transmission?->sentAt?->format(DATE_RFC3339) . "\n";
      * ```
      *
      * @see https://studio.inttegro.com/chimes for chime overview
@@ -109,7 +109,7 @@ class Chimes
      * @param array $payload Scheduled chime parameters
      *   - recipients: array - List of recipient phone numbers or emails (required)
      *   - full_message: string - Message content to send (required)
-     *   - send_after: string - ISO 8601 timestamp when chime should be sent (required)
+     *   - send_after: \DateTimeInterface - Time when the chime should be sent (required)
      *   - sender_id: string - Sender identifier (optional)
      *   - purpose: string - Purpose of this scheduled chime (optional)
      *
@@ -125,7 +125,7 @@ class Chimes
      * ]);
      *
      * echo "Chime scheduled: {$schedule->id}\n";
-     * echo "Will send at: {$schedule->sendAfter}\n";
+     * echo "Will send at: " . $schedule->sendAfter->format(DATE_RFC3339) . "\n";
      * ```
      *
      * @see https://studio.inttegro.com/send-scheduled-notifications for scheduling guide

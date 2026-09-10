@@ -131,7 +131,7 @@ $order = $inttegro->orders->pay([
 - Native request arrays use the API's documented `snake_case` field names, such as `order_id` and `payment_method_id`.
 - `ArrayAccess`, `toArray()`, and JSON serialization expose the API's `snake_case` wire representation.
 
-Legacy snake_case property reads such as `$transaction->payment_id` remain available for backwards compatibility in the current major version. They are deprecated, are not declared typed properties, and will be removed in the next major release. Use `$transaction->paymentId` in all new code. Values represented by `GenericValue` are the exception: their schemas permit arbitrary object data, so they preserve the API's original keys.
+Values represented by `GenericValue` preserve the API's original keys because their schemas permit arbitrary object data. All closed-schema domain values expose declared, typed `camelCase` properties.
 
 PHP-specific features:
 
@@ -150,7 +150,7 @@ Packagist versions resolve to immutable Git commit references. The corresponding
 
 ```bash
 sha256sum --check SHA256SUMS
-gh attestation verify inttegro-sdk-php-6.0.1.tar.gz \
+gh attestation verify inttegro-sdk-php-7.0.0.tar.gz \
   --repo zebodotdev/inttegro-sdk-php
 ```
 

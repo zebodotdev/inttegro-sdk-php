@@ -145,7 +145,7 @@ class HttpClient
                     if ($value === null) {
                         unset($fields[$key]);
                     } elseif (is_array($value)) {
-                        $fields[$key] = json_encode($value);
+                        $fields[$key] = $this->encodeJson($value);
                     }
                 }
                 foreach ($files as $key => $filePath) {
@@ -174,7 +174,7 @@ class HttpClient
                 'Content-Type: application/json',
                 'User-Agent: ' . $this->userAgent,
             ]);
-            $response = $this->send('POST', $url, $headers, json_encode($body));
+            $response = $this->send('POST', $url, $headers, $this->encodeJson($body));
             $this->telemetry->response($span, $response);
             if ($response['status'] >= 400) {
                 $this->handleErrorResponse($response);
@@ -231,7 +231,7 @@ class HttpClient
                         ? $this->withRequestMetaIdempotency($body)
                         : $this->withoutTopLevelIdempotencyKey($body);
                     $headers[] = 'Content-Type: application/json';
-                    $payload = json_encode($body);
+                    $payload = $this->encodeJson($body);
                 }
 
                 foreach ($customHeaders as $key => $value) {
@@ -448,6 +448,25 @@ class HttpClient
         }
         $decoded = json_decode($body, true);
         return json_last_error() === JSON_ERROR_NONE ? $decoded : $body;
+    }
+
+    private function encodeJson(mixed $value): string
+    {
+        return json_encode($this->normalizeJsonValue($value), JSON_THROW_ON_ERROR);
+    }
+
+    private function normalizeJsonValue(mixed $value): mixed
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format(DATE_RFC3339_EXTENDED);
+        }
+        if ($value instanceof \JsonSerializable) {
+            return $this->normalizeJsonValue($value->jsonSerialize());
+        }
+        if (is_array($value)) {
+            return array_map(fn(mixed $item): mixed => $this->normalizeJsonValue($item), $value);
+        }
+        return $value;
     }
 
     private function extractErrorMessage($data, int $status): string

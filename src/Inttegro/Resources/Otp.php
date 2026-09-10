@@ -50,7 +50,7 @@ class Otp
      * ]);
      *
      * echo "OTP sent. Transaction ID: {$transaction->id}\n";
-     * echo "Expires at: {$transaction->expiresAt}\n";
+     * echo "Expires at: " . $transaction->expiresAt->format(DATE_RFC3339) . "\n";
      * ```
      *
      * @see https://studio.inttegro.com/otp for OTP implementation guide
@@ -115,7 +115,7 @@ class Otp
      * ]);
      *
      * echo "Status: {$transaction->status}\n";
-     * echo "Expires: {$transaction->expiresAt}\n";
+     * echo "Expires: " . $transaction->expiresAt->format(DATE_RFC3339) . "\n";
      * ```
      *
      * @see https://studio.inttegro.com/otp for OTP overview

@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [7.0.0] - 2026-09-10
+
+- Breaking: replaced generic arrays with named models for balances, purchase intents, products, payment methods, payments, and orders.
+- Breaking: exposed API timestamps as `DateTimeImmutable` values and accepted `DateTimeInterface` values in timestamp request fields.
+- Removed legacy order and property compatibility aliases; canonical resource methods and typed camelCase properties are now the only public surface.
+
 ## [6.0.1] - 2026-09-08
 
 - Tightened financial-account and payment-method response models to exclude internal platform fields.
