@@ -2795,7 +2795,13 @@ final class OrderDiscountLineItem extends DomainValue
 
 final class OrderDiscountLineItemDiscount extends DomainValue
 {
-    public function __construct(array $data) {}
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data)
+    {
+        unset($data);
+    }
+
+    /** @param array<string, mixed> $data */
     public static function fromArray(array $data): static { return new static($data); }
 }
 
@@ -3378,7 +3384,10 @@ final class PaymentMethod extends DomainValue
 final class PaymentMethodCard extends DomainValue
 {
     /** @param array<string, mixed> $data */
-    public function __construct(array $data) {}
+    public function __construct(array $data)
+    {
+        unset($data);
+    }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): static
@@ -4537,31 +4546,46 @@ final class ProductShipment extends DomainValue
 
 final class ProductDelivery extends DomainValue
 {
-    public function __construct(array $data) {}
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data) { unset($data); }
+
+    /** @param array<string, mixed> $data */
     public static function fromArray(array $data): static { return new static($data); }
 }
 
 final class ProductDownload extends DomainValue
 {
-    public function __construct(array $data) {}
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data) { unset($data); }
+
+    /** @param array<string, mixed> $data */
     public static function fromArray(array $data): static { return new static($data); }
 }
 
 final class ProductRender extends DomainValue
 {
-    public function __construct(array $data) {}
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data) { unset($data); }
+
+    /** @param array<string, mixed> $data */
     public static function fromArray(array $data): static { return new static($data); }
 }
 
 final class ProductService extends DomainValue
 {
-    public function __construct(array $data) {}
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data) { unset($data); }
+
+    /** @param array<string, mixed> $data */
     public static function fromArray(array $data): static { return new static($data); }
 }
 
 final class ProductStream extends DomainValue
 {
-    public function __construct(array $data) {}
+    /** @param array<string, mixed> $data */
+    public function __construct(array $data) { unset($data); }
+
+    /** @param array<string, mixed> $data */
     public static function fromArray(array $data): static { return new static($data); }
 }
 
