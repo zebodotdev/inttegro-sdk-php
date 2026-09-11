@@ -58,7 +58,7 @@ jobs:
         run: |
           composer validate --strict --no-check-publish
           composer install --no-interaction --no-progress --prefer-dist
-          vendor/bin/phpstan analyse --no-progress
+          vendor/bin/phpstan analyse --no-progress --memory-limit=512M
           vendor/bin/phpunit
 
       - name: Archive the exact tagged source

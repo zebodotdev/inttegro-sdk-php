@@ -1,10 +1,10 @@
 <?php
 
-use Inttegro\Order;
-use Inttegro\Payment;
-use Inttegro\PaymentMethod;
-use Inttegro\Product;
-use Inttegro\PurchaseIntent;
+use Inttegro\Order\Order;
+use Inttegro\Payment\Payment;
+use Inttegro\PaymentMethod\PaymentMethod;
+use Inttegro\Product\Product;
+use Inttegro\PurchaseIntent\PurchaseIntent;
 use PHPUnit\Framework\TestCase;
 
 final class ResourceSemanticsTest extends TestCase

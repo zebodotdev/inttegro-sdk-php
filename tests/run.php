@@ -344,7 +344,7 @@ try {
 assertTrue($caught, 'AuthenticationError was not raised');
 
 $order = $client->orders->create(['number' => 'ORDER-3']);
-assertTrue($order instanceof \Inttegro\Order);
+assertTrue($order instanceof \Inttegro\Order\Order);
 assertEquals('or_1', $order->id);
 
 echo "All tests passed\n";

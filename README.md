@@ -37,9 +37,9 @@ require __DIR__ . '/vendor/autoload.php';
 
 use Inttegro\APIError;
 use Inttegro\Client;
-use Inttegro\ProductType;
 use Inttegro\Money\Currency;
-use Inttegro\PriceParams;
+use Inttegro\Price\InlineParams;
+use Inttegro\Product\Type;
 
 $inttegro = new Client(getenv('INTTEGRO_API_KEY'));
 
@@ -59,10 +59,13 @@ try {
         'line_items' => [[
             'type' => 'product',
             'product' => [
-                'type' => ProductType::Digital,
+                'type' => Type::Digital->value,
                 'name' => 'Monthly subscription',
                 'quantity' => 1,
-                'price' => new PriceParams(Currency::GHS, 5000),
+                'price' => new InlineParams(
+                    currency: Currency::GHS,
+                    value: 5000,
+                ),
             ],
         ]],
     ]);
@@ -114,6 +117,52 @@ Error reporting is completely opt-in. Without `errorReporter`, the SDK does not 
 
 The SDK covers orders and checkout, customers, products and prices, purchase intents, payment methods, balances, payouts and refunds, notifications, files, application settings, keys, and country specifications.
 
+### Resource types
+
+Every closed-schema value lives in the singular namespace for its resource. The main class repeats
+the namespace name, which keeps related models and enums together without creating a flat global
+type catalog:
+
+```php
+use Inttegro\Order\Order;
+use Inttegro\Payment\Payment;
+use Inttegro\Payment\Status as PaymentStatus;
+use Inttegro\Product\Product;
+use Inttegro\Product\Type as ProductType;
+
+$order = $inttegro->orders->lookup($orderId);
+$product = $inttegro->products->lookup($productId);
+
+assert($order instanceof Order);
+assert($product instanceof Product);
+assert($order->payment === null || $order->payment instanceof Payment);
+
+if ($order->payment?->status === PaymentStatus::Paid->value) {
+    // Fulfill the order.
+}
+
+if ($product->type === ProductType::Digital->value) {
+    // Deliver the digital product.
+}
+```
+
+Plural client properties such as `$inttegro->paymentMethods` perform API operations. Singular
+namespaces such as `Inttegro\PaymentMethod` contain the immutable values returned by those
+operations. There are no deprecated flat aliases: import the canonical resource type directly.
+
+All resource values inherit `Inttegro\DomainValue`:
+
+- `fromArray()` hydrates decoded API data whose keys use `snake_case`.
+- Readonly PHP properties use `camelCase` and expose nested closed-schema objects as concrete types.
+- `toArray()`, `ArrayAccess`, and JSON serialization return the recursive `snake_case` wire shape.
+- Offset-bearing API timestamps are parsed into `DateTimeImmutable`; optional timestamps are null.
+- Amount values pair `Money\Currency` with an integer number of minor units. For example, a value of
+  `5000` in `Currency::GHS` represents GHS 50.00.
+- Backed enum cases expose their exact API string through `->value`. Properties declared as an enum
+  return the case itself; string-valued status properties compare against `Status::Case->value`.
+- `GenericValue` appears only where the contract permits arbitrary JSON and therefore preserves
+  original keys instead of inventing a closed schema.
+
 ### Naming conventions
 
 The SDK keeps PHP identifiers distinct from the API's JSON field names:
@@ -128,6 +177,8 @@ $order = $inttegro->orders->pay([
 ```
 
 - Client resources, method parameters, local variables, and typed domain properties use `camelCase`, such as `purchaseIntents`, `paymentMethods`, and `paymentId`.
+- Resource classes and their supporting values live in singular namespaces, such as
+  `Inttegro\Payment\Payment`, `Inttegro\Payment\Status`, and `Inttegro\Product\Type`.
 - Native request arrays use the API's documented `snake_case` field names, such as `order_id` and `payment_method_id`.
 - `ArrayAccess`, `toArray()`, and JSON serialization expose the API's `snake_case` wire representation.
 
@@ -158,5 +209,6 @@ gh attestation verify inttegro-sdk-php-7.0.0.tar.gz \
 
 ```bash
 composer install
-php tests/run.php
+vendor/bin/phpunit
+vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 ```

@@ -17,6 +17,11 @@ class FinancialAccounts
 {
     private HttpClient $http;
 
+    /**
+     * Creates the financial accounts resource client.
+     *
+     * @param HttpClient $http Shared authenticated HTTP transport used by this resource client.
+     */
     public function __construct(HttpClient $http)
     {
         $this->http = $http;
@@ -29,7 +34,7 @@ class FinancialAccounts
      * supports push operations (receiving payouts), pull operations (being charged), or both.
      * Accounts must be verified before use.
      *
-     * @param array $payload Account creation parameters
+     * @param array<string, mixed> $payload Account creation parameters
      *   - label: string - Account label (5-40 characters, required)
      *   - type: string - Account type: 'wallet', 'bank_account', or 'dosh_account' (required)
      *   - reference: string - External reference ID (5-40 characters, required)
@@ -58,7 +63,7 @@ class FinancialAccounts
      *           - region: string - Region or state
      *           - country: string - Country code or name
      *
-     * @return \Inttegro\FinancialAccount Created financial account
+     * @return \Inttegro\FinancialAccount\FinancialAccount Created financial account
      *
      * @example Create mobile money account for payouts
      * ```php
@@ -86,9 +91,9 @@ class FinancialAccounts
      *
      * @see https://studio.inttegro.com/set-up-financial-account for account setup guide
      */
-    public function create(array $payload): \Inttegro\FinancialAccount
+    public function create(array $payload): \Inttegro\FinancialAccount\FinancialAccount
     {
-        return $this->http->postResource('/financial_accounts/create', \Inttegro\FinancialAccount::class, 'account', $payload);
+        return $this->http->postResource('/financial_accounts/create', \Inttegro\FinancialAccount\FinancialAccount::class, 'account', $payload);
     }
 
     /**
@@ -100,7 +105,7 @@ class FinancialAccounts
      *
      * @param string $accountId Unique identifier of the financial account to retrieve (required)
      *
-     * @return \Inttegro\FinancialAccount Complete financial account object
+     * @return \Inttegro\FinancialAccount\FinancialAccount Complete financial account object
      *
      * @example Lookup a financial account
      * ```php
@@ -116,9 +121,9 @@ class FinancialAccounts
      *
      * @see https://studio.inttegro.com/financial-accounts for financial account overview
      */
-    public function lookup(string $accountId): \Inttegro\FinancialAccount
+    public function lookup(string $accountId): \Inttegro\FinancialAccount\FinancialAccount
     {
-        return $this->http->postResource('/financial_accounts/lookup', \Inttegro\FinancialAccount::class, 'account', ['account_id' => $accountId]);
+        return $this->http->postResource('/financial_accounts/lookup', \Inttegro\FinancialAccount\FinancialAccount::class, 'account', ['account_id' => $accountId]);
     }
 
     /**
@@ -127,7 +132,7 @@ class FinancialAccounts
      * Creates and connects a new financial account. This endpoint is an alias for create()
      * and accepts the same payload fields.
      *
-     * @param array $payload Connection parameters (same as create)
+     * @param array<string, mixed> $payload Connection parameters (same as create)
      *   - label: string - Account label (5-40 characters, required)
      *   - type: string - Account type: 'wallet', 'bank_account', or 'dosh_account' (required)
      *   - reference: string - External reference ID (5-40 characters, required)
@@ -141,7 +146,7 @@ class FinancialAccounts
      *     - name: string - Owner full name
      *     - address: array - Owner address (name, line_1, city, region, country)
      *
-     * @return \Inttegro\FinancialAccount Connected financial account
+     * @return \Inttegro\FinancialAccount\FinancialAccount Connected financial account
      *
      * @example Connect a mobile money account
      * ```php
@@ -165,9 +170,9 @@ class FinancialAccounts
      *
      * @see https://studio.inttegro.com/set-up-financial-account for connection guide
      */
-    public function connect(array $payload): \Inttegro\FinancialAccount
+    public function connect(array $payload): \Inttegro\FinancialAccount\FinancialAccount
     {
-        return $this->http->postResource('/financial_accounts/connect', \Inttegro\FinancialAccount::class, 'account', $payload);
+        return $this->http->postResource('/financial_accounts/connect', \Inttegro\FinancialAccount\FinancialAccount::class, 'account', $payload);
     }
 
     /**
@@ -177,11 +182,11 @@ class FinancialAccounts
      * Use this when an account is no longer valid or needed. Archiving is reversible—you can
      * create a new account with the same details if needed.
      *
-     * @param array $payload Archive parameters
+     * @param array<string, mixed> $payload Archive parameters
      *   - account_id: string - Financial account to archive (required)
      *   - Additional parameters may be accepted
      *
-     * @return \Inttegro\FinancialAccount Archived financial account
+     * @return \Inttegro\FinancialAccount\FinancialAccount Archived financial account
      *
      * @example Archive a financial account
      * ```php
@@ -194,9 +199,9 @@ class FinancialAccounts
      *
      * @see https://studio.inttegro.com/financial-accounts for account management
      */
-    public function archive(array $payload): \Inttegro\FinancialAccount
+    public function archive(array $payload): \Inttegro\FinancialAccount\FinancialAccount
     {
-        return $this->http->postResource('/financial_accounts/archive', \Inttegro\FinancialAccount::class, 'account', $payload);
+        return $this->http->postResource('/financial_accounts/archive', \Inttegro\FinancialAccount\FinancialAccount::class, 'account', $payload);
     }
 
     /**
@@ -205,10 +210,10 @@ class FinancialAccounts
      * Returns accounts associated with your application. Use this to display available payout
      * destinations to users or manage account inventory programmatically.
      *
-     * @param array $payload Pagination parameters (optional)
+     * @param array<string, mixed> $payload Pagination parameters (optional)
      *   - Pagination and filtering options (specific parameters depend on implementation)
      *
-     * @return \Inttegro\FinancialAccountPage Paginated list of financial accounts
+     * @return \Inttegro\FinancialAccount\Page Paginated list of financial accounts
      *
      * @example Get financial accounts
      * ```php
@@ -222,9 +227,9 @@ class FinancialAccounts
      * @see https://studio.inttegro.com/financial-accounts for account overview
      * @see https://studio.inttegro.com/pagination for pagination guide
      */
-    public function page(array $payload = []): \Inttegro\FinancialAccountPage
+    public function page(array $payload = []): \Inttegro\FinancialAccount\Page
     {
-        return $this->http->postResource('/financial_accounts/page', \Inttegro\FinancialAccountPage::class, 'page', $payload);
+        return $this->http->postResource('/financial_accounts/page', \Inttegro\FinancialAccount\Page::class, 'page', $payload);
     }
 
     /**
@@ -234,11 +239,11 @@ class FinancialAccounts
      * confirms account ownership and enables the account to receive payouts. The specific
      * verification process depends on the account type.
      *
-     * @param array $payload Verification parameters
+     * @param array<string, mixed> $payload Verification parameters
      *   - account_id: string - Financial account to verify (required)
      *   - Verification-specific parameters depend on account type
      *
-     * @return \Inttegro\FinancialAccount Verified financial account
+     * @return \Inttegro\FinancialAccount\FinancialAccount Verified financial account
      *
      * @example Verify a financial account
      * ```php
@@ -253,9 +258,9 @@ class FinancialAccounts
      *
      * @see https://studio.inttegro.com/set-up-financial-account for verification guide
      */
-    public function verify(array $payload): \Inttegro\FinancialAccount
+    public function verify(array $payload): \Inttegro\FinancialAccount\FinancialAccount
     {
-        return $this->http->postResource('/financial_accounts/verify', \Inttegro\FinancialAccount::class, 'account', $payload);
+        return $this->http->postResource('/financial_accounts/verify', \Inttegro\FinancialAccount\FinancialAccount::class, 'account', $payload);
     }
 
     /**
@@ -263,19 +268,27 @@ class FinancialAccounts
      *
      * All fields except account_id are optional. custom_data merges with existing data.
      *
-     * @param array $payload Update parameters including account_id
+     * @param array<string, mixed> $payload Update parameters including account_id
      *
-     * @return \Inttegro\FinancialAccount Updated financial account
+     * @return \Inttegro\FinancialAccount\FinancialAccount Updated financial account
      */
-    public function update(array $payload): \Inttegro\FinancialAccount
+    public function update(array $payload): \Inttegro\FinancialAccount\FinancialAccount
     {
-        return $this->http->postResource('/financial_accounts/update', \Inttegro\FinancialAccount::class, 'account', $payload);
+        return $this->http->postResource('/financial_accounts/update', \Inttegro\FinancialAccount\FinancialAccount::class, 'account', $payload);
     }
 
-    /** Enable push configuration for payouts. */
-    public function enablePush(string $accountId): \Inttegro\FinancialAccount
+    /**
+     * Enable push configuration for payouts.
+     *
+     * Sends the documented request through the shared authenticated transport and hydrates the
+     * successful response into the declared return type.
+     *
+     * @param string $accountId Unique identifier of the account.
+     * @return \Inttegro\FinancialAccount\FinancialAccount The resulting financial account.
+     */
+    public function enablePush(string $accountId): \Inttegro\FinancialAccount\FinancialAccount
     {
-        return $this->http->postResource('/financial_accounts/enable_push', \Inttegro\FinancialAccount::class, 'account', ['account_id' => $accountId]);
+        return $this->http->postResource('/financial_accounts/enable_push', \Inttegro\FinancialAccount\FinancialAccount::class, 'account', ['account_id' => $accountId]);
     }
 
     /**
@@ -284,25 +297,41 @@ class FinancialAccounts
      * Accepts either a financial account ID string or a payload with optional
      * unset_as_payout_destination.
      */
-    public function disablePush($accountIdOrPayload): \Inttegro\FinancialAccount
+    public function disablePush($accountIdOrPayload): \Inttegro\FinancialAccount\FinancialAccount
     {
         $payload = is_array($accountIdOrPayload)
             ? $accountIdOrPayload
             : ['account_id' => $accountIdOrPayload];
 
-        return $this->http->postResource('/financial_accounts/disable_push', \Inttegro\FinancialAccount::class, 'account', $payload);
+        return $this->http->postResource('/financial_accounts/disable_push', \Inttegro\FinancialAccount\FinancialAccount::class, 'account', $payload);
     }
 
-    /** Enable pull configuration for charges (creates mandate). */
-    public function enablePull(string $accountId): \Inttegro\FinancialAccount
+    /**
+     * Enable pull configuration for charges (creates mandate).
+     *
+     * Sends the documented request through the shared authenticated transport and hydrates the
+     * successful response into the declared return type.
+     *
+     * @param string $accountId Unique identifier of the account.
+     * @return \Inttegro\FinancialAccount\FinancialAccount The resulting financial account.
+     */
+    public function enablePull(string $accountId): \Inttegro\FinancialAccount\FinancialAccount
     {
-        return $this->http->postResource('/financial_accounts/enable_pull', \Inttegro\FinancialAccount::class, 'account', ['account_id' => $accountId]);
+        return $this->http->postResource('/financial_accounts/enable_pull', \Inttegro\FinancialAccount\FinancialAccount::class, 'account', ['account_id' => $accountId]);
     }
 
-    /** Disable pull configuration for charges. */
-    public function disablePull(string $accountId): \Inttegro\FinancialAccount
+    /**
+     * Disable pull configuration for charges.
+     *
+     * Sends the documented request through the shared authenticated transport and hydrates the
+     * successful response into the declared return type.
+     *
+     * @param string $accountId Unique identifier of the account.
+     * @return \Inttegro\FinancialAccount\FinancialAccount The resulting financial account.
+     */
+    public function disablePull(string $accountId): \Inttegro\FinancialAccount\FinancialAccount
     {
-        return $this->http->postResource('/financial_accounts/disable_pull', \Inttegro\FinancialAccount::class, 'account', ['account_id' => $accountId]);
+        return $this->http->postResource('/financial_accounts/disable_pull', \Inttegro\FinancialAccount\FinancialAccount::class, 'account', ['account_id' => $accountId]);
     }
 
     /**
@@ -311,18 +340,26 @@ class FinancialAccounts
      * Accepts either a financial account ID string or a payload with optional
      * unset_as_payout_destination.
      */
-    public function disconnect($accountIdOrPayload): \Inttegro\FinancialAccount
+    public function disconnect($accountIdOrPayload): \Inttegro\FinancialAccount\FinancialAccount
     {
         $payload = is_array($accountIdOrPayload)
             ? $accountIdOrPayload
             : ['account_id' => $accountIdOrPayload];
 
-        return $this->http->postResource('/financial_accounts/disconnect', \Inttegro\FinancialAccount::class, 'account', $payload);
+        return $this->http->postResource('/financial_accounts/disconnect', \Inttegro\FinancialAccount\FinancialAccount::class, 'account', $payload);
     }
 
-    /** Reconnect a previously disconnected financial account. */
-    public function reconnect(string $accountId): \Inttegro\FinancialAccount
+    /**
+     * Reconnect a previously disconnected financial account.
+     *
+     * Sends the documented request through the shared authenticated transport and hydrates the
+     * successful response into the declared return type.
+     *
+     * @param string $accountId Unique identifier of the account.
+     * @return \Inttegro\FinancialAccount\FinancialAccount The resulting financial account.
+     */
+    public function reconnect(string $accountId): \Inttegro\FinancialAccount\FinancialAccount
     {
-        return $this->http->postResource('/financial_accounts/reconnect', \Inttegro\FinancialAccount::class, 'account', ['account_id' => $accountId]);
+        return $this->http->postResource('/financial_accounts/reconnect', \Inttegro\FinancialAccount\FinancialAccount::class, 'account', ['account_id' => $accountId]);
     }
 }

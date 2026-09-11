@@ -3,9 +3,9 @@
 namespace Inttegro\Resources;
 
 use Inttegro\HttpClient;
-use Inttegro\Order;
-use Inttegro\OrderDocumentDeliveryResult;
-use Inttegro\OrderPage;
+use Inttegro\Order\Order;
+use Inttegro\Order\DocumentDeliveryResult;
+use Inttegro\Order\Page;
 
 /**
  * Orders resource for creating orders, processing payments, and managing order lifecycle.
@@ -20,6 +20,11 @@ class Orders
 {
     private HttpClient $http;
 
+    /**
+     * Creates the orders resource client.
+     *
+     * @param HttpClient $http Shared authenticated HTTP transport used by this resource client.
+     */
     public function __construct(HttpClient $http)
     {
         $this->http = $http;
@@ -32,7 +37,7 @@ class Orders
      * existing customer, include multiple line items, and optionally execute payment
      * immediately. Orders must have at least one line item and billing details.
      *
-     * @param array $payload Order creation parameters
+     * @param array<string, mixed> $payload Order creation parameters
      *   - customer_data: array - New customer information (required if customer_id not provided)
      *   - customer_id: string - Existing customer ID (required if customer_data not provided)
      *   - line_items: array - List of products/services being purchased (required)
@@ -107,7 +112,7 @@ class Orders
      * Use this to check order status, retrieve payment details, or display order confirmation to customers.
      *
      * @param string $orderId Unique identifier of the order to retrieve (required)
-     * @param array $options Additional options (currently unused)
+     * @param array<string, mixed> $options Additional options (currently unused)
      *
      * @return Order The complete order
      *
@@ -135,7 +140,15 @@ class Orders
         );
     }
 
-    /** Update mutable fields on an existing order (POST /orders/update). */
+    /**
+     * Update mutable fields on an existing order (POST /orders/update).
+     *
+     * Sends the documented request through the shared authenticated transport and hydrates the
+     * successful response into the declared return type.
+     *
+     * @param array<string, mixed> $payload Request fields keyed by the documented `snake_case` API names.
+     * @return Order The updated order.
+     */
     public function update(array $payload): Order
     {
         return $this->http->postResource('/orders/update', Order::class, 'order', $payload);
@@ -151,7 +164,7 @@ class Orders
      *
      * When payment requires customer confirmation (e.g., OTP), the returned order includes a nextAction field.
      *
-     * @param array $payload Payment parameters
+     * @param array<string, mixed> $payload Payment parameters
      *   - order_id: string - Unique identifier of the order to pay (required)
      *   - payment_method_data: array - Inline payment method details (mobile money, card, etc.)
      *   - payment_method_id: string - ID of a saved payment method to use
@@ -199,7 +212,7 @@ class Orders
      * Call this method when a payment requires customer confirmation and you've collected the verification
      * token from the customer. The token is typically a 6-digit OTP sent via SMS or email.
      *
-     * @param array $payload Confirmation parameters
+     * @param array<string, mixed> $payload Confirmation parameters
      *   - order_id: string - Unique identifier of the order being paid (required)
      *   - token: string - Verification token provided by customer (required, typically 6 digits)
      *
@@ -231,7 +244,7 @@ class Orders
      * token will be sent via SMS or email to the customer's registered contact information.
      *
      * @param string $orderId Unique identifier of the order requiring confirmation (required)
-     * @param array $requestMeta Request controls such as idempotency_key (optional)
+     * @param array<string, mixed> $requestMeta Request controls such as idempotency_key (optional)
      *
      * @return Order The updated order
      *
@@ -261,7 +274,7 @@ class Orders
      * or order completion. Most orders are finalized automatically, but you can explicitly finalize if needed.
      *
      * @param string $orderId Unique identifier of the order to finalize (required)
-     * @param array $requestMeta Request controls such as idempotency_key (optional)
+     * @param array<string, mixed> $requestMeta Request controls such as idempotency_key (optional)
      *
      * @return Order The finalized order
      *
@@ -287,27 +300,27 @@ class Orders
     /**
      * Send the hosted invoice link for an existing order.
      *
-     * @param array $payload Send invoice parameters
+     * @param array<string, mixed> $payload Send invoice parameters
      *   - order_id: string - Unique identifier of the order whose invoice should be sent (required)
      *
-     * @return OrderDocumentDeliveryResult Order and delivery details
+     * @return DocumentDeliveryResult Order and delivery details
      */
-    public function sendInvoice(array $payload): OrderDocumentDeliveryResult
+    public function sendInvoice(array $payload): DocumentDeliveryResult
     {
-        return $this->http->postValue('/orders/send_invoice', OrderDocumentDeliveryResult::class, $payload);
+        return $this->http->postValue('/orders/send_invoice', DocumentDeliveryResult::class, $payload);
     }
 
     /**
      * Send the hosted receipt link for a paid order.
      *
-     * @param array $payload Send receipt parameters
+     * @param array<string, mixed> $payload Send receipt parameters
      *   - order_id: string - Unique identifier of the paid order whose receipt should be sent (required)
      *
-     * @return OrderDocumentDeliveryResult Order and delivery details
+     * @return DocumentDeliveryResult Order and delivery details
      */
-    public function sendReceipt(array $payload): OrderDocumentDeliveryResult
+    public function sendReceipt(array $payload): DocumentDeliveryResult
     {
-        return $this->http->postValue('/orders/send_receipt', OrderDocumentDeliveryResult::class, $payload);
+        return $this->http->postValue('/orders/send_receipt', DocumentDeliveryResult::class, $payload);
     }
 
     /**
@@ -317,7 +330,7 @@ class Orders
      * Completing an order transitions it to its final state and can optionally mark payment as received
      * offline (out-of-band) if paid_out_of_band is set to true.
      *
-     * @param array $payload Completion parameters
+     * @param array<string, mixed> $payload Completion parameters
      *   - order_id: string - Unique identifier of the order to complete (required)
      *   - paid_out_of_band: bool - Set to true if payment received outside Inttegro (default: false)
      *
@@ -346,7 +359,7 @@ class Orders
      * the order cannot be fulfilled. If payment was already captured, you'll need to refund it separately.
      *
      * @param string $orderId Unique identifier of the order to cancel (required)
-     * @param array $requestMeta Request controls such as idempotency_key (optional)
+     * @param array<string, mixed> $requestMeta Request controls such as idempotency_key (optional)
      *
      * @return Order The cancelled order
      *
@@ -374,12 +387,12 @@ class Orders
      *
      * Returns orders in reverse chronological order (most recent first).
      *
-     * @param array $payload Pagination and filter parameters (optional)
+     * @param array<string, mixed> $payload Pagination and filter parameters (optional)
      *   - page_number: int - Zero-based page index to retrieve (0-10)
      *   - page_size: int - Number of orders per page (1-256)
      *   - customer_id: string - Optional customer whose orders should be returned
      *
-     * @return OrderPage Paginated orders and pagination details
+     * @return Page Paginated orders and pagination details
      *
      * @example Get first page of orders
      * ```php
@@ -395,9 +408,9 @@ class Orders
      * @see https://studio.inttegro.com/pagination for pagination guide
      * @see https://studio.inttegro.com/orders for API reference
      */
-    public function page(array $payload = []): OrderPage
+    public function page(array $payload = []): Page
     {
-        return $this->http->postResource('/orders/page', OrderPage::class, 'page', $payload);
+        return $this->http->postResource('/orders/page', Page::class, 'page', $payload);
     }
 
     private function stableOrderRequestMeta(string $action, string $orderId): array

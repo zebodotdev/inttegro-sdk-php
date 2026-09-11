@@ -16,18 +16,28 @@ class BalanceTransactions
 {
     private HttpClient $http;
 
+    /**
+     * Creates the balance transactions resource client.
+     *
+     * @param HttpClient $http Shared authenticated HTTP transport used by this resource client.
+     */
     public function __construct(HttpClient $http)
     {
         $this->http = $http;
     }
 
     /**
-     * Retrieve one transaction with required id, type, order_id, amount, and created_at.
-     * When type is payment the response has payment_id; when refund it has refund_id.
+     * Retrieve one transaction with required id, type, order_id, amount, and created_at. When type is payment the response has payment_id; when refund it has refund_id.
+     *
+     * Sends the documented request through the shared authenticated transport and hydrates the
+     * successful response into the declared return type.
+     *
+     * @param string $transactionId Unique identifier of the transaction.
+     * @return \Inttegro\BalanceTransaction\BalanceTransaction The requested balance transaction.
      */
-    public function lookup(string $transactionId): \Inttegro\BalanceTransaction
+    public function lookup(string $transactionId): \Inttegro\BalanceTransaction\BalanceTransaction
     {
-        return $this->http->postResource('/balance_transactions/lookup', \Inttegro\BalanceTransaction::class, 'transaction', ['transaction_id' => $transactionId]);
+        return $this->http->postResource('/balance_transactions/lookup', \Inttegro\BalanceTransaction\BalanceTransaction::class, 'transaction', ['transaction_id' => $transactionId]);
     }
 
     /**
@@ -37,11 +47,11 @@ class BalanceTransactions
      * Required transaction fields are id, type, order_id, amount, and created_at. Optional
      * payout_id, available_at, claimed_at, and paid_at are included when applicable.
      *
-     * @param array $payload Pagination parameters (optional)
+     * @param array<string, mixed> $payload Pagination parameters (optional)
      *   - page_number: int - 0-based page index (0-10, default: 0)
      *   - page_size: int - Results per page (1-256, default varies)
      *
-     * @return \Inttegro\BalanceTransactionPage Paginated transaction list with page details
+     * @return \Inttegro\BalanceTransaction\Page Paginated transaction list with page details
      *
      * @example Get recent balance transactions
      * ```php
@@ -62,8 +72,8 @@ class BalanceTransactions
      * @see https://studio.inttegro.com/balance-transactions for balance transaction guide
      * @see https://studio.inttegro.com/pagination for pagination guide
      */
-    public function page(array $payload = []): \Inttegro\BalanceTransactionPage
+    public function page(array $payload = []): \Inttegro\BalanceTransaction\Page
     {
-        return $this->http->postResource('/balance_transactions/page', \Inttegro\BalanceTransactionPage::class, 'page', $payload);
+        return $this->http->postResource('/balance_transactions/page', \Inttegro\BalanceTransaction\Page::class, 'page', $payload);
     }
 }
