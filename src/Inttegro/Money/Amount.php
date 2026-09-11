@@ -5,18 +5,36 @@ namespace Inttegro\Money;
 use Inttegro\DomainValue;
 
 /**
- * An amount returned by Inttegro, expressed in integer minor units.
+ * A monetary amount returned by Inttegro, pairing an ISO 4217 currency with integer minor units.
  *
+ * This immutable value hydrates decoded API `snake_case` data into typed `camelCase` properties.
+ * Use `fromArray()` for wire data; `toArray()`, array access, and JSON serialization expose the API
+ * wire representation. Nullable properties correspond to optional API fields.
+ *
+ * @see \Inttegro\DomainValue
  * @phpstan-consistent-constructor
  */
 class Amount extends DomainValue
 {
+    /**
+     * Creates a monetary amount returned by the API.
+     *
+     * @param Currency $currency Required ISO 4217 currency. Wire field: `currency` (`string`).
+     * @param int $value Required integer minor-unit value. Wire field: `value` (`integer`).
+     */
     public function __construct(
+        /** Required. PHP type: `Currency`; wire field: `currency` (`string`). */
         public readonly Currency $currency,
+        /** Required. PHP type: `int`; wire field: `value` (`integer` minor units). */
         public readonly int $value,
     ) {}
 
-    /** @param array<string, mixed> $data */
+    /**
+     * Creates an Amount from its decoded API wire representation.
+     *
+     * @param array<string, mixed> $data Wire object keyed by `snake_case` API field names.
+     * @return static A typed, immutable Amount value.
+     */
     public static function fromArray(array $data): static
     {
         $currency = $data['currency'] ?? Currency::GHS;

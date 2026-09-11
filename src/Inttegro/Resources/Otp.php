@@ -17,6 +17,11 @@ class Otp
 {
     private HttpClient $http;
 
+    /**
+     * Creates the otp resource client.
+     *
+     * @param HttpClient $http Shared authenticated HTTP transport used by this resource client.
+     */
     public function __construct(HttpClient $http)
     {
         $this->http = $http;
@@ -29,7 +34,7 @@ class Otp
      * is typically 6 digits and expires after a configured time period. Use OTPs for
      * payment confirmations, sensitive account changes, or multi-factor authentication.
      *
-     * @param array $payload OTP initiation parameters
+     * @param array<string, mixed> $payload OTP initiation parameters
      *   - recipient: string - Phone number in international format (required)
      *   - sender: string - Sender identifier (required)
      *   - service_name: string - Service name in message (required)
@@ -37,7 +42,7 @@ class Otp
      *   - purpose: string - Description of why OTP is needed (optional)
      *   - Additional transaction configuration parameters
      *
-     * @return \Inttegro\OTPTransaction Created OTP session
+     * @return \Inttegro\Otp\Transaction Created OTP session
      *
      * @example Initialize OTP session
      * ```php
@@ -55,9 +60,9 @@ class Otp
      *
      * @see https://studio.inttegro.com/otp for OTP implementation guide
      */
-    public function initiate(array $payload): \Inttegro\OTPTransaction
+    public function initiate(array $payload): \Inttegro\Otp\Transaction
     {
-        return $this->http->postResource('/otp/initiate', \Inttegro\OTPTransaction::class, 'transaction', $payload);
+        return $this->http->postResource('/otp/initiate', \Inttegro\Otp\Transaction::class, 'transaction', $payload);
     }
 
     /**
@@ -67,12 +72,12 @@ class Otp
      * verification succeeds and the session is marked complete. Failed verification attempts
      * are tracked, and excessive failures may lock the session.
      *
-     * @param array $payload Verification parameters
+     * @param array<string, mixed> $payload Verification parameters
      *   - transaction_id: string - OTP transaction identifier (required)
      *   - recipient: string - Recipient phone number (required)
      *   - token: string - Customer-provided OTP code (required, typically 6 digits)
      *
-     * @return \Inttegro\OTPVerification Verification result
+     * @return \Inttegro\Otp\Verification Verification result
      *
      * @example Verify OTP code
      * ```php
@@ -91,9 +96,9 @@ class Otp
      *
      * @see https://studio.inttegro.com/otp for verification flow
      */
-    public function verify(array $payload): \Inttegro\OTPVerification
+    public function verify(array $payload): \Inttegro\Otp\Verification
     {
-        return $this->http->postValue('/otp/verify', \Inttegro\OTPVerification::class, $payload);
+        return $this->http->postValue('/otp/verify', \Inttegro\Otp\Verification::class, $payload);
     }
 
     /**
@@ -103,10 +108,10 @@ class Otp
      * and recipient details. Use this to check session state or display remaining attempts
      * to customers.
      *
-     * @param array $payload Lookup parameters
+     * @param array<string, mixed> $payload Lookup parameters
      *   - transaction_id: string - OTP transaction identifier to retrieve (required)
      *
-     * @return \Inttegro\OTPTransaction OTP session details
+     * @return \Inttegro\Otp\Transaction OTP session details
      *
      * @example Lookup OTP session
      * ```php
@@ -120,9 +125,9 @@ class Otp
      *
      * @see https://studio.inttegro.com/otp for OTP overview
      */
-    public function lookup(array $payload): \Inttegro\OTPTransaction
+    public function lookup(array $payload): \Inttegro\Otp\Transaction
     {
-        return $this->http->postResource('/otp/lookup', \Inttegro\OTPTransaction::class, 'transaction', $payload);
+        return $this->http->postResource('/otp/lookup', \Inttegro\Otp\Transaction::class, 'transaction', $payload);
     }
 
     /**
@@ -132,11 +137,11 @@ class Otp
      * verification flow or when the operation requiring OTP is cancelled. Cancelled
      * sessions cannot be resumed or verified.
      *
-     * @param array $payload Cancellation parameters
+     * @param array<string, mixed> $payload Cancellation parameters
      *   - transaction_id: string - OTP transaction to cancel (required)
      *   - reason: string - Reason for cancellation (required)
      *
-     * @return \Inttegro\OTPTransaction Cancelled session
+     * @return \Inttegro\Otp\Transaction Cancelled session
      *
      * @example Cancel OTP session
      * ```php
@@ -150,8 +155,8 @@ class Otp
      *
      * @see https://studio.inttegro.com/otp for session management
      */
-    public function cancel(array $payload): \Inttegro\OTPTransaction
+    public function cancel(array $payload): \Inttegro\Otp\Transaction
     {
-        return $this->http->postResource('/otp/cancel', \Inttegro\OTPTransaction::class, 'transaction', $payload);
+        return $this->http->postResource('/otp/cancel', \Inttegro\Otp\Transaction::class, 'transaction', $payload);
     }
 }

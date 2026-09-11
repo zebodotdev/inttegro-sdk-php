@@ -17,6 +17,11 @@ class Spec
 {
     private HttpClient $http;
 
+    /**
+     * Creates the spec resource client.
+     *
+     * @param HttpClient $http Shared authenticated HTTP transport used by this resource client.
+     */
     public function __construct(HttpClient $http)
     {
         $this->http = $http;
@@ -37,7 +42,7 @@ class Spec
      *
      * This is a public endpoint that does not require authentication.
      *
-     * @return \Inttegro\CountrySpecifications Country specifications
+     * @return \Inttegro\Shared\CountrySpecifications Country specifications
      *
      * @example Get country specifications
      * ```php
@@ -55,8 +60,8 @@ class Spec
      *
      * @see https://studio.inttegro.com/country-specifications for spec details
      */
-    public function countries(): \Inttegro\CountrySpecifications
+    public function countries(): \Inttegro\Shared\CountrySpecifications
     {
-        return $this->http->postValue('/spec/countries', \Inttegro\CountrySpecifications::class, []);
+        return $this->http->postValue('/spec/countries', \Inttegro\Shared\CountrySpecifications::class, []);
     }
 }

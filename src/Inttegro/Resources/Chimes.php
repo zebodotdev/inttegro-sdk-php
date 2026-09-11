@@ -17,6 +17,11 @@ class Chimes
 {
     private HttpClient $http;
 
+    /**
+     * Creates the chimes resource client.
+     *
+     * @param HttpClient $http Shared authenticated HTTP transport used by this resource client.
+     */
     public function __construct(HttpClient $http)
     {
         $this->http = $http;
@@ -29,13 +34,13 @@ class Chimes
      * sent synchronously, and delivery status is returned in the response. Use chimes for
      * time-sensitive notifications like OTPs, order confirmations, or payment receipts.
      *
-     * @param array $payload Chime parameters
+     * @param array<string, mixed> $payload Chime parameters
      *   - recipient: string - Phone number (E.164 format) or email address (required)
      *   - message: string - Message content to send (required)
      *   - transport: string - Delivery method: 'sms' or 'email' (optional, auto-detected from recipient)
      *   - sender: string - Sender name/number for SMS or from-address for email (optional)
      *
-     * @return \Inttegro\Chime Sent chime with delivery status
+     * @return \Inttegro\Chime\Chime Sent chime with delivery status
      *
      * @example Send SMS notification
      * ```php
@@ -60,9 +65,9 @@ class Chimes
      *
      * @see https://studio.inttegro.com/send-customer-notification for notification guide
      */
-    public function send(array $payload): \Inttegro\Chime
+    public function send(array $payload): \Inttegro\Chime\Chime
     {
-        return $this->http->postResource('/chimes/send', \Inttegro\Chime::class, 'chime', $payload);
+        return $this->http->postResource('/chimes/send', \Inttegro\Chime\Chime::class, 'chime', $payload);
     }
 
     /**
@@ -74,7 +79,7 @@ class Chimes
      *
      * @param string $chimeId Unique identifier of the chime to retrieve (required)
      *
-     * @return \Inttegro\Chime Complete chime object with delivery details
+     * @return \Inttegro\Chime\Chime Complete chime object with delivery details
      *
      * @example Lookup a chime
      * ```php
@@ -89,15 +94,23 @@ class Chimes
      *
      * @see https://studio.inttegro.com/chimes for chime overview
      */
-    public function lookup(string $chimeId): \Inttegro\Chime
+    public function lookup(string $chimeId): \Inttegro\Chime\Chime
     {
-        return $this->http->postResource('/chimes/lookup', \Inttegro\Chime::class, 'chime', ['chime_id' => $chimeId]);
+        return $this->http->postResource('/chimes/lookup', \Inttegro\Chime\Chime::class, 'chime', ['chime_id' => $chimeId]);
     }
 
-    /** Retrieve a paginated list of chimes. */
-    public function page(array $payload = []): \Inttegro\ChimePage
+    /**
+     * Retrieve a paginated list of chimes.
+     *
+     * Sends the documented request through the shared authenticated transport and hydrates the
+     * successful response into the declared return type.
+     *
+     * @param array<string, mixed> $payload Request fields keyed by the documented `snake_case` API names.
+     * @return \Inttegro\Chime\Page A typed page of matching chimes.
+     */
+    public function page(array $payload = []): \Inttegro\Chime\Page
     {
-        return $this->http->postResource('/chimes/page', \Inttegro\ChimePage::class, 'page', $payload);
+        return $this->http->postResource('/chimes/page', \Inttegro\Chime\Page::class, 'page', $payload);
     }
 
     /**
@@ -106,14 +119,14 @@ class Chimes
      * Creates a chime that will be sent automatically at the specified timestamp. Use scheduled
      * chimes for appointment reminders, subscription renewal notices, or time-delayed notifications.
      *
-     * @param array $payload Scheduled chime parameters
+     * @param array<string, mixed> $payload Scheduled chime parameters
      *   - recipients: array - List of recipient phone numbers or emails (required)
      *   - full_message: string - Message content to send (required)
      *   - send_after: \DateTimeInterface - Time when the chime should be sent (required)
      *   - sender_id: string - Sender identifier (optional)
      *   - purpose: string - Purpose of this scheduled chime (optional)
      *
-     * @return \Inttegro\ScheduleCreationDetail Scheduled chime object with send time
+     * @return \Inttegro\Schedule\CreationDetail Scheduled chime object with send time
      *
      * @example Schedule SMS for tomorrow
      * ```php
@@ -130,9 +143,9 @@ class Chimes
      *
      * @see https://studio.inttegro.com/send-scheduled-notifications for scheduling guide
      */
-    public function schedule(array $payload): \Inttegro\ScheduleCreationDetail
+    public function schedule(array $payload): \Inttegro\Schedule\CreationDetail
     {
-        return $this->http->postResource('/chimes/schedule', \Inttegro\ScheduleCreationDetail::class, 'scheduled_chime', $payload);
+        return $this->http->postResource('/chimes/schedule', \Inttegro\Schedule\CreationDetail::class, 'scheduled_chime', $payload);
     }
 
     /**
@@ -141,7 +154,7 @@ class Chimes
      * Queues a broadcast with a shared message template. Use broadcasts for marketing announcements
      * or bulk notifications.
      *
-     * @param array $payload Broadcast parameters
+     * @param array<string, mixed> $payload Broadcast parameters
      *   - recipients: array - List of recipient phone numbers or emails (required)
      *   - message_template: string - Message template to send (required)
      *   - service_name: string - Service initiating the broadcast (required)
@@ -150,10 +163,10 @@ class Chimes
      *   - preferred_gateway: string - Preferred delivery gateway (optional)
      *   - request_meta: array - Request controls such as idempotency_key (optional)
      *
-     * @return \Inttegro\BroadcastCreationDetail Broadcast summary
+     * @return \Inttegro\Broadcast\CreationDetail Broadcast summary
      */
-    public function broadcast(array $payload): \Inttegro\BroadcastCreationDetail
+    public function broadcast(array $payload): \Inttegro\Broadcast\CreationDetail
     {
-        return $this->http->postResource('/chimes/broadcast', \Inttegro\BroadcastCreationDetail::class, 'broadcast', $payload);
+        return $this->http->postResource('/chimes/broadcast', \Inttegro\Broadcast\CreationDetail::class, 'broadcast', $payload);
     }
 }

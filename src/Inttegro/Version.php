@@ -2,7 +2,9 @@
 
 namespace Inttegro;
 
+/** Installed Inttegro PHP SDK version metadata. */
 class Version
 {
-    public const VERSION = '7.0.0';
+    /** Semantic version of this SDK build. */
+    public const VERSION = '8.0.0';
 }

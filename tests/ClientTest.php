@@ -2,31 +2,31 @@
 
 use PHPUnit\Framework\TestCase;
 use Inttegro\Client;
-use Inttegro\CatalogPrice;
-use Inttegro\CatalogPriceParams;
+use Inttegro\Price\Price;
+use Inttegro\Price\Params;
 use Inttegro\Money\Amount;
 use Inttegro\Money\AmountParams;
 use Inttegro\Money\Currency;
-use Inttegro\Price;
-use Inttegro\PriceParams;
+use Inttegro\Price\Inline;
+use Inttegro\Price\InlineParams;
 use Inttegro\AuthenticationError;
 use Inttegro\APIError;
 use Inttegro\ErrorReport;
-use Inttegro\ProductType;
-use Inttegro\MobileMoneyNetwork;
-use Inttegro\RefundReason;
-use Inttegro\UploadRequestStatus;
-use Inttegro\Order;
-use Inttegro\OrderDocumentDeliveryResult;
-use Inttegro\OrderPage;
-use Inttegro\Payment;
-use Inttegro\PaymentAttempt;
-use Inttegro\PaymentMethodSnapshot;
-use Inttegro\Refund;
-use Inttegro\BankAccounts\BankAccount;
-use Inttegro\BankAccounts\BankAccountType;
-use Inttegro\Wallets\Wallet;
-use Inttegro\Wallets\WalletType;
+use Inttegro\Product\Type;
+use Inttegro\PaymentMethod\MobileMoneyNetwork;
+use Inttegro\Refund\Reason;
+use Inttegro\UploadRequest\Status;
+use Inttegro\Order\Order;
+use Inttegro\Order\DocumentDeliveryResult;
+use Inttegro\Order\Page;
+use Inttegro\Payment\Payment;
+use Inttegro\Payment\Attempt;
+use Inttegro\Payment\PaymentMethod;
+use Inttegro\Refund\Refund;
+use Inttegro\BankAccount\BankAccount;
+use Inttegro\BankAccount\Type as BankAccountType;
+use Inttegro\Wallet\Wallet;
+use Inttegro\Wallet\Type as WalletType;
 use OpenTelemetry\API\Trace\SpanBuilderInterface;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\TracerInterface;
@@ -227,16 +227,16 @@ final class ClientTest extends TestCase
 
     public function test_api_enums_encode_as_wire_values(): void
     {
-        $this->assertSame('digital', ProductType::Digital->value);
+        $this->assertSame('digital', Type::Digital->value);
         $this->assertSame('mtn', MobileMoneyNetwork::MTN->value);
         $this->assertSame('ghs', Currency::GHS->value);
-        $this->assertSame('requested_by_customer', RefundReason::RequestedByCustomer->value);
-        $this->assertSame('{"status":"pending"}', json_encode(['status' => UploadRequestStatus::Pending]));
+        $this->assertSame('requested_by_customer', Reason::RequestedByCustomer->value);
+        $this->assertSame('{"status":"pending"}', json_encode(['status' => Status::Pending]));
     }
 
     public function test_purchase_intent_exposes_nested_response_types(): void
     {
-        $intent = \Inttegro\PurchaseIntent::fromArray([
+        $intent = \Inttegro\PurchaseIntent\PurchaseIntent::fromArray([
             'activity' => [
                 'recent' => [[
                     'created_at' => '2026-09-09T12:01:00Z',
@@ -270,8 +270,8 @@ final class ClientTest extends TestCase
         $this->assertSame('Tea House Ltd', $intent->merchant?->organizationName);
         $this->assertSame(1024.0, $intent->product?->dimensions?->digital?->bytes);
         $this->assertSame('or_123', $intent->usage->order?->id);
-        $this->assertSame(\Inttegro\PurchaseIntentStatus::Active, $intent->status);
-        $this->assertSame(\Inttegro\PurchaseIntentActivityType::Viewed, $intent->activity?->recent[0]->type);
+        $this->assertSame(\Inttegro\PurchaseIntent\Status::Active, $intent->status);
+        $this->assertSame(\Inttegro\PurchaseIntent\ActivityType::Viewed, $intent->activity?->recent[0]->type);
         $this->assertInstanceOf(\DateTimeImmutable::class, $intent->createdAt);
         $this->assertSame('2026-09-09T12:00:00.000+00:00', $intent->toArray()['created_at']);
     }
@@ -279,16 +279,16 @@ final class ClientTest extends TestCase
     public function test_amount_and_price_types_keep_wire_shapes_flat(): void
     {
         $amount = new AmountParams(Currency::GHS, 3005);
-        $price = new PriceParams(Currency::USD, 1200);
-        $catalogParams = new CatalogPriceParams($amount, label: 'Retail');
-        $catalogPrice = CatalogPrice::fromArray([
+        $price = new InlineParams(Currency::USD, 1200);
+        $catalogParams = new Params($amount, label: 'Retail');
+        $catalogPrice = Price::fromArray([
             'id' => 'pr_123',
             'active' => true,
             'nominal' => ['currency' => 'ghs', 'value' => 3005],
             'product_id' => 'prod_123',
             'created_at' => '2026-09-02T12:00:00Z',
         ]);
-        $inlinePrice = Price::fromArray(['currency' => 'eur', 'value' => 900]);
+        $inlinePrice = Inline::fromArray(['currency' => 'eur', 'value' => 900]);
 
         $this->assertSame(['currency' => 'ghs', 'value' => 3005], $amount->toArray());
         $this->assertSame(['currency' => 'usd', 'value' => 1200], $price->toArray());
@@ -424,10 +424,10 @@ final class ClientTest extends TestCase
         $delivery = $client->orders->sendInvoice(['order_id' => 'or_1']);
 
         $this->assertInstanceOf(Order::class, $order);
-        $this->assertInstanceOf(OrderPage::class, $page);
+        $this->assertInstanceOf(Page::class, $page);
         $this->assertInstanceOf(Order::class, $page->orders[0]);
         $this->assertInstanceOf(Refund::class, $refund);
-        $this->assertInstanceOf(OrderDocumentDeliveryResult::class, $delivery);
+        $this->assertInstanceOf(DocumentDeliveryResult::class, $delivery);
         $this->assertSame('or_1', $order->id);
     }
 
@@ -458,8 +458,8 @@ final class ClientTest extends TestCase
         ]);
 
         $this->assertInstanceOf(Payment::class, $order->payment);
-        $this->assertInstanceOf(PaymentMethodSnapshot::class, $order->payment->paymentMethod);
-        $this->assertInstanceOf(PaymentAttempt::class, $order->payment->latestAttempt);
+        $this->assertInstanceOf(PaymentMethod::class, $order->payment->paymentMethod);
+        $this->assertInstanceOf(Attempt::class, $order->payment->latestAttempt);
     }
 
     public function test_all_resource_methods_return_domain_types(): void
