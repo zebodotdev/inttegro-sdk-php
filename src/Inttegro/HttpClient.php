@@ -65,6 +65,24 @@ class HttpClient
     /**
      * @template T of DomainValue
      * @param class-string<T> $class
+     * @return Response
+     */
+    public function postResourceWithResponse(
+        string $path,
+        string $class,
+        string $field,
+        ?array $body = null,
+        array $headers = []
+    ): Response {
+        $response = $this->requestWithResponse('POST', $path, $body, [], $headers);
+        $data = is_array($response->data) ? $response->data : [];
+        $resource = is_array($data[$field] ?? null) ? $data[$field] : $data;
+        return $response->withData($class::fromArray($resource));
+    }
+
+    /**
+     * @template T of DomainValue
+     * @param class-string<T> $class
      * @return T
      */
     public function postValue(string $path, string $class, ?array $body = null, array $headers = []): DomainValue
@@ -211,11 +229,23 @@ class HttpClient
         array $customHeaders = []
     ): array
     {
+        $data = $this->requestWithResponse($method, $path, $body, $query, $customHeaders)->data;
+        return is_array($data) ? $data : [];
+    }
+
+    private function requestWithResponse(
+        string $method,
+        string $path,
+        ?array $body = null,
+        array $query = [],
+        array $customHeaders = []
+    ): Response
+    {
         return $this->telemetry->trace(
             $path,
             $method,
             $this->baseUrl,
-            function (?SpanInterface $span) use ($method, $path, $body, $query, $customHeaders): array {
+            function (?SpanInterface $span) use ($method, $path, $body, $query, $customHeaders): Response {
                 $url = $this->buildUrl($path, $query);
                 $headers = [
                     'Accept: application/json',
@@ -249,7 +279,7 @@ class HttpClient
                 }
 
                 $this->telemetry->response($span, $response);
-                $result = $this->responseArray($response);
+                $result = $this->responseEnvelope($response);
                 $this->telemetry->decoded($span);
                 return $result;
             }
@@ -325,12 +355,22 @@ class HttpClient
     /** @return array<string, mixed> */
     private function responseArray(array $response): array
     {
+        $data = $this->responseEnvelope($response)->data;
+        return is_array($data) ? $data : [];
+    }
+
+    private function responseEnvelope(array $response): Response
+    {
         $status = $response['status'];
         $rawBody = $response['body'];
         $data = $this->parseJson($rawBody);
 
         if ($status < 400) {
-            return is_array($data) ? $data : [];
+            $body = is_array($data) ? $data : [];
+            $meta = isset($body['response_meta']) && is_array($body['response_meta'])
+                ? $body['response_meta']
+                : null;
+            return new Response($body, $status, $response['headers'], $meta);
         }
 
         $this->handleErrorResponse($response, $data);

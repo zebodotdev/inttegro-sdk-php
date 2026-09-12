@@ -6,6 +6,7 @@ use Inttegro\HttpClient;
 use Inttegro\Order\Order;
 use Inttegro\Order\DocumentDeliveryResult;
 use Inttegro\Order\Page;
+use Inttegro\Response;
 
 /**
  * Orders resource for creating orders, processing payments, and managing order lifecycle.
@@ -103,6 +104,17 @@ class Orders
     public function create(array $payload): Order
     {
         return $this->http->postResource('/orders/create', Order::class, 'order', $payload);
+    }
+
+    /**
+     * Create a new order and keep HTTP response metadata with the decoded order.
+     *
+     * @param array<string, mixed> $payload Order creation parameters.
+     * @return Response Response whose data is an Order.
+     */
+    public function createWithResponse(array $payload): Response
+    {
+        return $this->http->postResourceWithResponse('/orders/create', Order::class, 'order', $payload);
     }
 
     /**

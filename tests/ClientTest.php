@@ -65,6 +65,41 @@ final class ClientTest extends TestCase
         $this->assertSame('api.inttegro.com', $serverAddress);
     }
 
+    public function test_response_envelope_exposes_response_only_metadata(): void
+    {
+        $adapter = static fn (): array => [
+            'status' => 200,
+            'body' => json_encode([
+                'order' => [
+                    'id' => 'or_1',
+                    'customer' => ['id' => 'cu_123', 'guest' => false, 'name' => 'Test User'],
+                    'status' => 'preparing',
+                    'initiated_at' => '2026-09-10T10:00:00Z',
+                ],
+                'response_meta' => [
+                    'request_id' => 'req_123',
+                    'debug' => ['provider_attempts' => 1],
+                ],
+            ]),
+            'headers' => [
+                'content-type' => 'application/json',
+                'x-request-id' => 'req_123',
+                'retry-after' => '15',
+            ],
+        ];
+        $client = new Client('sk_test', adapter: $adapter, telemetryEnabled: false);
+
+        $response = $client->orders->createWithResponse([]);
+
+        $this->assertInstanceOf(Order::class, $response->data);
+        $this->assertSame('or_1', $response->data->id);
+        $this->assertSame(200, $response->status);
+        $this->assertSame('req_123', $response->requestId);
+        $this->assertSame('15', $response->retryAfter);
+        $this->assertSame('req_123', $response->meta['request_id']);
+        $this->assertSame('req_123', $response->headers['x-request-id']);
+    }
+
     public function test_emits_redacted_opentelemetry_span_and_propagates_context(): void
     {
         $events = [];
@@ -474,6 +509,9 @@ final class ClientTest extends TestCase
             $resource = $property->getValue($client);
             foreach ((new \ReflectionObject($resource))->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
                 if ($method->isConstructor()) {
+                    continue;
+                }
+                if (str_ends_with($method->getName(), 'WithResponse')) {
                     continue;
                 }
                 $type = $method->getReturnType();

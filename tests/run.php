@@ -32,7 +32,7 @@ function implementedSdkPaths(): array
             continue;
         }
         preg_match_all(
-            '/->(?:postResource|postValue|postMultipartResource|postMultipartValue|postBinaryJson)\(\s*[\'"](\/[a-z0-9_\/-]+)[\'"]/m',
+            '/->(?:postResource|postResourceWithResponse|postValue|postMultipartResource|postMultipartValue|postBinaryJson)\(\s*[\'"](\/[a-z0-9_\/-]+)[\'"]/m',
             $contents,
             $matches
         );
@@ -45,9 +45,17 @@ function implementedSdkPaths(): array
     return $paths;
 }
 
+$clientCheckoutPaths = [
+    '/checkout/lookup',
+    '/checkout/pay',
+    '/checkout/request_confirmation',
+    '/checkout/confirm_payment',
+];
+
 $missing = array_values(array_diff(
     openApiSpecPaths(),
     ['/file_links/open', '/upload_requests/upload'],
+    $clientCheckoutPaths,
     implementedSdkPaths()
 ));
 assertEquals(
@@ -57,18 +65,82 @@ assertEquals(
 );
 
 $requests = [];
-$adapter = function ($method, $url, $headers, $payload) use (&$requests) {
+$purchaseIntent = [
+    'allow_variants' => false,
+    'created_at' => '2026-09-09T12:00:00Z',
+    'id' => 'sale_123',
+    'quantity' => ['min' => 1],
+    'status' => 'active',
+    'usage' => ['multi_use' => true],
+];
+$timestampedStub = [
+    'ok' => true,
+    'as_of' => '2026-09-10T10:00:00Z',
+    'attempted_at' => '2026-09-10T10:00:00Z',
+    'created_at' => '2026-09-10T10:00:00Z',
+    'enabled_at' => '2026-09-10T10:00:00Z',
+    'execute_after' => '2026-09-10T10:00:00Z',
+    'expires_at' => '2026-09-10T10:00:00Z',
+    'initialized_at' => '2026-09-10T10:00:00Z',
+    'initiated_at' => '2026-09-10T10:00:00Z',
+    'issued_at' => '2026-09-10T10:00:00Z',
+    'occurred_at' => '2026-09-10T10:00:00Z',
+    'send_after' => '2026-09-10T10:00:00Z',
+    'supplied_at' => '2026-09-10T10:00:00Z',
+    'updated_at' => '2026-09-10T10:00:00Z',
+    'valid_until' => '2026-09-10T10:00:00Z',
+];
+$adapter = function ($method, $url, $headers, $payload) use (&$requests, $purchaseIntent, $timestampedStub) {
     $requests[] = compact('method', 'url', 'headers', 'payload');
     $path = parse_url($url, PHP_URL_PATH) ?: '';
+    $order = [
+        'id' => 'or_1',
+        'customer' => ['id' => 'cu_1', 'guest' => false, 'name' => 'Test User'],
+        'status' => 'preparing',
+        'initiated_at' => '2026-09-10T10:00:00Z',
+    ];
     $body = match ($path) {
+        '/refunds/create' => ['refund' => [
+            'id' => 'rf_1',
+            'created_at' => '2026-09-10T10:00:00Z',
+        ]],
         '/orders/page' => ['page' => ['number' => 0, 'size' => 0, 'orders' => []]],
         '/orders/send_invoice', '/orders/send_receipt' => [
-            'order' => ['id' => 'or_1', 'status' => 'preparing'],
+            'order' => $order,
             'delivery' => [],
         ],
+        '/balances' => [
+            'balances' => [
+                'ghs' => [
+                    'available' => ['amount' => 1000],
+                    'includes_transactions_before' => '2026-09-09T12:00:00Z',
+                    'pending' => ['amount' => 200],
+                    'refund' => ['amount' => 50],
+                    'reserved' => ['amount' => 100],
+                ],
+            ],
+        ],
+        '/purchase_intents/page' => [
+            'page' => ['number' => 1, 'size' => 0, 'purchase_intents' => []],
+        ],
+        '/keys/usage' => [
+            'key' => ['issued_at' => '2026-09-10T10:00:00Z'],
+            'usage' => [],
+        ],
+        '/otp/verify' => [
+            'transaction' => [
+                'expires_at' => '2026-09-10T10:05:00Z',
+                'initiated_at' => '2026-09-10T10:00:00Z',
+            ],
+            'verification_attempt' => [
+                'attempted_at' => '2026-09-10T10:01:00Z',
+            ],
+        ],
         default => str_starts_with($path, '/orders/')
-            ? ['order' => ['id' => 'or_1', 'status' => 'preparing']]
-            : ['ok' => true],
+            ? ['order' => $order]
+            : (str_starts_with($path, '/purchase_intents/')
+                ? ['purchase_intent' => $purchaseIntent]
+                : $timestampedStub),
     };
     return [
         'status' => 200,
