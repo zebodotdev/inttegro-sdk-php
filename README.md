@@ -1,6 +1,6 @@
 # Inttegro PHP SDK
 
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/zebodotdev/inttegro-sdk-php/badge)](https://scorecard.dev/viewer/?uri=github.com/zebodotdev/inttegro-sdk-php)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/inttegro/inttegro-sdk-php/badge)](https://scorecard.dev/viewer/?uri=github.com/inttegro/inttegro-sdk-php)
 
 The official PHP client for building server-side Inttegro integrations.
 
@@ -202,7 +202,7 @@ Packagist versions resolve to immutable Git commit references. The corresponding
 ```bash
 sha256sum --check SHA256SUMS
 gh attestation verify inttegro-sdk-php-7.0.0.tar.gz \
-  --repo zebodotdev/inttegro-sdk-php
+  --repo inttegro/inttegro-sdk-php
 ```
 
 ## Develop
