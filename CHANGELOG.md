@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [8.1.0] - 2026-09-12
+
+- Added opt-in response envelopes that expose status, headers, request IDs,
+  retry hints, and response metadata without changing existing resource return
+  values.
+
 ## [8.0.0] - 2026-09-11
 
 - Breaking: moved resource models and enums from the `Inttegro` root into singular resource namespaces such as `Inttegro\Payment\Payment`, with one public type per file.
